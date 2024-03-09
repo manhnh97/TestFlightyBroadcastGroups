@@ -1,5 +1,5 @@
 from telegram import Update, Bot
-from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 import re
 import requests
 from fake_useragent import UserAgent
@@ -20,17 +20,38 @@ GROUP_TESTFLIGHT_KGM_ID = '-1001823403288'
 GROUP_TESTFLIGHT_1110_ID = '-1002112742740'
 # Testflight_Reviews
 GROUP_TESTFLIGHT_REVIEWS_ID = '-1001363951322'
+# Testflight_Mesasge
+THREAD_CONTACT_M = '11'
+GROUP_TESTFLIGHT_CONTACT_M = '-1002031575789'
 
-bot = Bot(TOKEN_REMINDSLOW_ID)
 PATTERN_TESTFLIGHT = r'https?://testflight\.apple\.com/join/[a-zA-Z0-9]{8}'
 XPATH_STATUS = '//*[@class="beta-status"]/span/text()'
 MAX_RETRIES = 3
 
-async def handle_testflightapps_private(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+warnings.filterwarnings('ignore', category=RuntimeWarning)
+
+async def Start_Now(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await context.bot.send_message(chat_id=update.effective_chat.id, \
+            text="Hi sir, \
+                \nThis is my bot, the bot support me post testflight apps soon. \
+                \nIf you need contact to me. Please use /cc \"your message\".\nHave a great day!")
+
+async def Contact_M(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id = update.message.chat_id
+    username = update.message.chat.username
+    message_contact_m = ' '.join(context.args)
+    
+    parameter = {
+        "message_thread_id": THREAD_CONTACT_M,
+        "chat_id": GROUP_TESTFLIGHT_CONTACT_M,
+        "text": f"chat_id: {chat_id}\nusername: {username}\nmessage: {message_contact_m}"
+    }
+    requests.get(BASE_URL_REDMINDSLOW, data=parameter)
+    
+async def Handle_TestflightApps_Private(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if update.message.text:
         testflight_link = update.message.text
     
-        warnings.filterwarnings('ignore', category=RuntimeWarning)
 
         if '#' in testflight_link:
             
@@ -112,6 +133,9 @@ async def handle_testflightapps_private(update: Update, context: ContextTypes.DE
                     await update.message.reply_text("An error occurred while processing the TestFlight link.")
 
 app = ApplicationBuilder().token(TOKEN_REMINDSLOW_ID).build()
-app.add_handler(MessageHandler(filters.TEXT & filters.ChatType.PRIVATE & filters.Regex(PATTERN_TESTFLIGHT), handle_testflightapps_private))
+
+app.add_handler(CommandHandler('start', Start_Now, filters.ChatType.PRIVATE))
+app.add_handler(CommandHandler('cc', Contact_M, filters.ChatType.PRIVATE))
+app.add_handler(MessageHandler(filters.TEXT & filters.ChatType.PRIVATE & filters.Regex(PATTERN_TESTFLIGHT), Handle_TestflightApps_Private))
 
 app.run_polling()

@@ -17,20 +17,22 @@ GROUP_TESTFLIGHT_NGHIEN_ID = '-1001236644871'
 THREAD_KGM = '32'
 GROUP_TESTFLIGHT_KGM_ID = '-1001823403288'
 # Testflight1110chat
-# THREAD_KGM = '32'
-GROUP_TESTFLIGHT_1110_ID = '-1002077327541'
+GROUP_TESTFLIGHT_1110_ID = '-1002112742740'
+# Testflight_Reviews
+GROUP_TESTFLIGHT_REVIEWS_ID = '-1001363951322'
 
-MAX_RETRIES = 3
+PATTERN_TESTFLIGHT = r'https?://testflight\.apple\.com/join/[a-zA-Z0-9]{8}'
 XPATH_STATUS = '//*[@class="beta-status"]/span/text()'
+MAX_RETRIES = 3
 
 async def handle_testflightapps(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    testflight_link = update.message.text
-    
+    if update.message and update.message.text:
+        testflight_link = update.message.text
+        
     warnings.filterwarnings('ignore', category=RuntimeWarning)
-    PATTERN = r'https?://testflight\.apple\.com/join/[a-zA-Z0-9]{8}'
 
     if '#' in testflight_link:
-        # await update.message.reply_text(testflight_link)
+
         parameter = {
             "message_thread_id": THREAD_NGHIEN_ID,
             "chat_id": GROUP_TESTFLIGHT_NGHIEN_ID,
@@ -39,6 +41,12 @@ async def handle_testflightapps(update: Update, context: ContextTypes.DEFAULT_TY
         r = requests.get(BASE_URL_REDMINDSLOW, data=parameter)
 
         parameter = {
+            "chat_id": GROUP_TESTFLIGHT_1110_ID,
+            "text": testflight_link
+        }
+        r = requests.get(BASE_URL_REDMINDSLOW, data=parameter)
+        
+        parameter = {
             "message_thread_id": THREAD_KGM,
             "chat_id": GROUP_TESTFLIGHT_KGM_ID,
             "text": testflight_link
@@ -46,16 +54,14 @@ async def handle_testflightapps(update: Update, context: ContextTypes.DEFAULT_TY
         r = requests.get(BASE_URL_REDMINDSLOW, data=parameter)
         
         parameter = {
-            # "message_thread_id": THREAD_KGM,
-            "chat_id": GROUP_TESTFLIGHT_1110_ID,
+            "chat_id": GROUP_TESTFLIGHT_REVIEWS_ID,
             "text": testflight_link
         }
         r = requests.get(BASE_URL_REDMINDSLOW, data=parameter)
-    elif re.search(PATTERN, testflight_link):
-        # Define the pattern to match TestFlight links
-        # Find all TestFlight links in the message
-        urls = re.findall(PATTERN, testflight_link)
-
+        
+    elif re.search(PATTERN_TESTFLIGHT, testflight_link):
+        
+        urls = re.findall(PATTERN_TESTFLIGHT, testflight_link)
         for url in urls:
             user_agent = UserAgent()
             headers = {'User-Agent': user_agent.random}
@@ -72,7 +78,6 @@ async def handle_testflightapps(update: Update, context: ContextTypes.DEFAULT_TY
                         textname_between_tothe_and_beta = text_matches.group(1).strip()
                         hashtags = re.findall(r"\b\w+\b", textname_between_tothe_and_beta)
                         hashtag = " ".join(["#" + hashtag.upper() for hashtag in hashtags])
-                        # await update.message.reply_text(f"{hashtag}\n\n{url}")
                         
                         parameter = {
                             "message_thread_id": THREAD_NGHIEN_ID,
@@ -82,27 +87,29 @@ async def handle_testflightapps(update: Update, context: ContextTypes.DEFAULT_TY
                         r = requests.get(BASE_URL_REDMINDSLOW, data=parameter)
 
                         parameter = {
-                            "message_thread_id": THREAD_KGM,
-                            "chat_id": GROUP_TESTFLIGHT_KGM_ID,
+                            "chat_id": GROUP_TESTFLIGHT_1110_ID,
                             "text": f"{hashtag}\n\n{url}"
                         }
                         r = requests.get(BASE_URL_REDMINDSLOW, data=parameter)
                         
                         parameter = {
-                            # "message_thread_id": THREAD_KGM,
-                            "chat_id": GROUP_TESTFLIGHT_1110_ID,
+                            "message_thread_id": THREAD_KGM,
+                            "chat_id": GROUP_TESTFLIGHT_KGM_ID,
+                            "text": f"{hashtag}\n\n{url}"
+                        }
+                        
+                        r = requests.get(BASE_URL_REDMINDSLOW, data=parameter)
+                        parameter = {
+                            "chat_id": GROUP_TESTFLIGHT_REVIEWS_ID,
                             "text": f"{hashtag}\n\n{url}"
                         }
                         r = requests.get(BASE_URL_REDMINDSLOW, data=parameter)
-
+                        
             except (requests.RequestException, IndexError) as e:
                 print("Error:", e)
                 await update.message.reply_text("An error occurred while processing the TestFlight link.")
-        else:
-            update.message.reply_text("The provided message does not contain a TestFlight link")
 
 app = ApplicationBuilder().token(TOKEN_REMINDSLOW_ID).build()
-
-app.add_handler(MessageHandler(filters.TEXT & filters.Regex(r".*testflight\.apple\.com.*"), handle_testflightapps))
+app.add_handler(MessageHandler(filters.TEXT & filters.Regex(PATTERN_TESTFLIGHT), handle_testflightapps))
 
 app.run_polling()

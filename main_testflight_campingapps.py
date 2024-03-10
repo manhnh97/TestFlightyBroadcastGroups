@@ -91,11 +91,35 @@ async def Handle_TestflightApps_Private(update: Update, context: ContextTypes.DE
                     print("Error:", e)
                     await update.message.reply_text("An error occurred while processing the TestFlight link.")
 
+def Handle_Entity_Links(url):
+    headers = {'User-Agent': user_agent.random}
+    try:
+        r = requests.get(url, headers=headers)
+        if r.status_code == 200:
+            page = html.fromstring(r.text)
+            span_text = page.xpath(XPATH_STATUS)[0]
+            pattern_Available = r'To join the\s(.*?)\sbeta'
+            text_matches = re.search(pattern_Available, span_text, re.IGNORECASE)
+            if text_matches:
+                textname_between_tothe_and_beta = text_matches.group(1).strip()
+                hashtags = re.findall(r"\b\w+\b", textname_between_tothe_and_beta)
+                hashtag = " ".join(["#" + hashtag.upper() for hashtag in hashtags])
+                Send_Message_Groups(hashtag, url)
+    except (requests.RequestException, IndexError) as e:
+        print("Error:", e)
+
+async def Handle_TestflightApps_Entities(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    for entity in update.message.entities:
+        if entity.type == 'text_link' and r'testflight.apple.com' in entity.url:
+            testflight_link = entity.url
+            Handle_Entity_Links(testflight_link)
+
 app = ApplicationBuilder().token(TOKEN_CAMPINGAPPS_ID).build()
 
 app.add_handler(CommandHandler('start', Start_Now, filters.ChatType.PRIVATE))
 app.add_handler(CommandHandler('help', Start_Now, filters.ChatType.PRIVATE))
 app.add_handler(CommandHandler('cc', Contact_M, filters.ChatType.PRIVATE))
 app.add_handler(MessageHandler(filters.TEXT & filters.ChatType.PRIVATE & filters.Regex(PATTERN_TESTFLIGHT), Handle_TestflightApps_Private))
+app.add_handler(MessageHandler(filters.TEXT & (filters.Entity("url") | filters.Entity("text_link")) & filters.ChatType.PRIVATE, Handle_TestflightApps_Entities))
 
 app.run_polling()

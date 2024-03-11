@@ -1,4 +1,5 @@
-from telegram import Update, Bot
+from telegram import Update
+from telegram.constants import ParseMode
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 import re
 import requests
@@ -114,12 +115,25 @@ async def Handle_TestflightApps_Entities(update: Update, context: ContextTypes.D
             testflight_link = entity.url
             Handle_Entity_Links(testflight_link)
 
+async def Handle_Testflight_Reviews_Group(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user_info = update.message.from_user.to_dict()
+    message = update.message
+    if message and message.text and user_info['is_bot'] == False:
+        member_user = user_info['first_name']
+        if re.search(r'ree?dee?m|code', message.text):
+            await update.message.reply_text(f"Hi, {member_user}, \
+                                            \nWe have not Redeem Code, use Testflight Links, please. \
+                                            \nPlease read: [Redeem Code](https://t.me/testflightR/70210)"
+                                            , parse_mode=ParseMode.MARKDOWN)
+
 app = ApplicationBuilder().token(TOKEN_CAMPINGAPPS_ID).build()
 
 app.add_handler(CommandHandler('start', Start_Now, filters.ChatType.PRIVATE))
 app.add_handler(CommandHandler('help', Start_Now, filters.ChatType.PRIVATE))
 app.add_handler(CommandHandler('cc', Contact_M, filters.ChatType.PRIVATE))
-app.add_handler(MessageHandler(filters.TEXT & filters.ChatType.PRIVATE & filters.Regex(PATTERN_TESTFLIGHT), Handle_TestflightApps_Private))
-app.add_handler(MessageHandler(filters.TEXT & (filters.Entity("url") | filters.Entity("text_link")) & filters.ChatType.PRIVATE, Handle_TestflightApps_Entities))
+app.add_handler(MessageHandler(filters.TEXT & filters.ChatType.PRIVATE & filters.Regex(PATTERN_TESTFLIGHT) & (~ filters.COMMAND), Handle_TestflightApps_Private))
+app.add_handler(MessageHandler(filters.TEXT & (filters.Entity("url") | filters.Entity("text_link")) & (~ filters.COMMAND) & filters.ChatType.PRIVATE, Handle_TestflightApps_Entities))
+
+app.add_handler(MessageHandler(filters.TEXT & (~ filters.COMMAND) & filters.ChatType.SUPERGROUP & filters.Chat(chat_id=int(GROUPS_TESTFLIGHT_CAMPINGAPPS_CHAT)), Handle_Testflight_Reviews_Group))
 
 app.run_polling()

@@ -1,4 +1,5 @@
-from telegram import Update, Bot
+from telegram import Update
+from telegram.constants import ParseMode
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 import re
 import requests
@@ -21,7 +22,8 @@ GROUP_TESTFLIGHT_KGM_ID = '-1001823403288'
 # Testflight1110chat
 GROUP_TESTFLIGHT_1110_ID = '-1002112742740'
 # Testflight_Reviews
-GROUP_TESTFLIGHT_REVIEWS_ID = '-1001363951322'
+GROUP_TESTFLIGHT_REVIEWS_ID = '-1001170452834'
+GROUPS_TESTFLIGHT_X_ID = '-1001363951322'
 # Testflight_Mesasge
 THREAD_CONTACT_M = '11'
 GROUP_TESTFLIGHT_CONTACT_M = '-1002031575789'
@@ -58,7 +60,7 @@ def Send_Message_Groups(hashtag, url):
     requests.get(BASE_URL_REDMINDSLOW, data=parameter)
     
     parameter = {
-        "chat_id": GROUP_TESTFLIGHT_REVIEWS_ID,
+        "chat_id": GROUPS_TESTFLIGHT_X_ID,
         "text": f"{hashtag}\n\n{url}"
     }
     requests.get(BASE_URL_REDMINDSLOW, data=parameter)
@@ -149,6 +151,20 @@ def Handle_Entity_Links(url):
     except (requests.RequestException, IndexError) as e:
         print("Error:", e)
 
+def Is_Available_Apps(url):
+    headers = {'User-Agent': user_agent.random}
+    try:
+        r = requests.get(url, headers=headers)
+        if r.status_code == 200:
+            page = html.fromstring(r.text)
+            span_text = page.xpath(XPATH_STATUS)[0]
+            pattern_Available = r'To join the\s(.*?)\sbeta'
+            text_matches = re.search(pattern_Available, span_text, re.IGNORECASE)
+
+            return text_matches
+    except (requests.RequestException, IndexError) as e:
+        print("Error:", e)
+
 async def Handle_TestflightApps_Entities(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     for entity in update.message.entities:
         if entity.type == 'text_link' and r'testflight.apple.com' in entity.url:
@@ -156,10 +172,27 @@ async def Handle_TestflightApps_Entities(update: Update, context: ContextTypes.D
             Handle_Entity_Links(testflight_link)
 app = ApplicationBuilder().token(TOKEN_REMINDSLOW_ID).build()
 
-app.add_handler(CommandHandler('start', Start_Now, filters.ChatType.PRIVATE))
-app.add_handler(CommandHandler('help', Start_Now, filters.ChatType.PRIVATE))
+async def Handle_Testflight_Reviews_Group(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user_info = update.message.from_user.to_dict()
+    message = update.message
+    if message and message.text and user_info['is_bot'] == False:
+        member_user = user_info['first_name']
+        if re.search(r'ree?dee?m|code', message.text):
+            await update.message.reply_text(f"Hi, {member_user}, \
+                                            \nWe have not Redeem Code, use Testflight Links, please. \
+                                            \nPlease read: [Redeem Code](https://t.me/testflightR/70210)"
+                                            , parse_mode=ParseMode.MARKDOWN)
+
+async def Handle_Testflight_Reviews_CheckApps(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    pass
+
+app.add_handler(CommandHandler(['start', 'help'], Start_Now, filters.ChatType.PRIVATE))
 app.add_handler(CommandHandler('cc', Contact_M, filters.ChatType.PRIVATE))
 app.add_handler(MessageHandler(filters.TEXT & filters.ChatType.PRIVATE & filters.Regex(PATTERN_TESTFLIGHT), Handle_TestflightApps_Private))
 app.add_handler(MessageHandler(filters.TEXT & (filters.Entity("url") | filters.Entity("text_link")) & filters.ChatType.PRIVATE, Handle_TestflightApps_Entities))
+
+# Testflight_Reviews
+app.add_handler(MessageHandler(filters.TEXT & (~ filters.COMMAND) & filters.ChatType.SUPERGROUP & filters.Chat(chat_id=int(GROUP_TESTFLIGHT_REVIEWS_ID)), Handle_Testflight_Reviews_Group))
+# app.add_handler(CommandHandler(['check', 'c'], Handle_Testflight_Reviews_CheckApps, filters.ChatType.SUPERGROUP & (filters.Entity("url") | filters.Entity("text_link") | filters.Regex(r'[a-zA-Z0-9]{8}')) & filters.Chat(chat_id=int(GROUPS_TESTFLIGHT_CAMPINGAPPS_CHAT))))
 
 app.run_polling()

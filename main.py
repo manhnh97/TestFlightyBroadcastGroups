@@ -1,18 +1,18 @@
-from telegram import Update
-from telegram.constants import ParseMode
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 import re
 import requests
-from fake_useragent import UserAgent
-from lxml import html
 import warnings
+from lxml import html
+from telegram import Update
+from fake_useragent import UserAgent
+from telegram.constants import ParseMode
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 
 TOKEN_REMINDSLOW_ID = '6717549493:AAEzYjWPhL0IQFQ1rnKEvEJ89lf3sbvxRGc'
 BASE_URL_REDMINDSLOW = f"https://api.telegram.org/bot{TOKEN_REMINDSLOW_ID}/sendMessage"
 
 # Group TestflightCampingApps
-GROUPS_TESTFLIGHT_CAMPINGAPPS_DASHBOARD = '-1002117624357'
-GROUPS_TESTFLIGHT_CAMPINGAPPS_CHAT = '-1002011883262'
+GROUPS_TESTFLIGHT_M_DASHBOARD = '-1002099467699'
+GROUPS_TESTFLIGHT_M_CHAT = '-1001883897634'
 # Nghien
 THREAD_NGHIEN_ID = '235212'
 GROUP_TESTFLIGHT_NGHIEN_ID = '-1001236644871'
@@ -41,7 +41,7 @@ warnings.filterwarnings('ignore', category=RuntimeWarning)
 def Send_Message_Groups(hashtag, url):
     
     parameter = {
-        "chat_id": GROUPS_TESTFLIGHT_CAMPINGAPPS_DASHBOARD,
+        "chat_id": GROUPS_TESTFLIGHT_M_DASHBOARD,
         "text": f"{hashtag}\n\n{url}"
     }
     requests.get(BASE_URL_REDMINDSLOW, data=parameter)
@@ -181,7 +181,7 @@ async def Handle_Testflight_Reviews_Group(update: Update, context: ContextTypes.
             member_user = user_info['first_name']
             if re.search(r'ree?dee?m|code', message.text):
                 await update.message.reply_text(f"Hi {member_user}, \
-                                                \nWe have not Redeem Code, use only Testflight Links, please. \
+                                                \nWe have not Redeem Code, use only Testflight Links. \
                                                 \nPlease read: [Redeem Code](https://t.me/testflightR/70210)"
                                                 , parse_mode=ParseMode.MARKDOWN)
 
@@ -219,9 +219,8 @@ app.add_handler(MessageHandler(filters.TEXT & (filters.Entity("url") | filters.E
 # Testflight_Reviews
 CHOOSE_GROUP_TESTFLIGHT_REVIEWS = filters.ChatType.SUPERGROUP & filters.Chat(chat_id=int(GROUP_TESTFLIGHT_REVIEWS_ID))
 app.add_handler(MessageHandler(filters.TEXT & (~ filters.COMMAND) & CHOOSE_GROUP_TESTFLIGHT_REVIEWS, Handle_Testflight_Reviews_Group))
-# app.add_handler(CommandHandler(['check', 'c'], Handle_Testflight_Reviews_CheckApps, filters.ChatType.SUPERGROUP & (filters.Entity("url") | filters.Entity("text_link") | filters.Regex(r'[a-zA-Z0-9]{8}')) & filters.Chat(chat_id=int(GROUPS_TESTFLIGHT_CAMPINGAPPS_CHAT))))
 app.add_handler(CommandHandler(['help', 'start'], Start_Testflight_Reviews, CHOOSE_GROUP_TESTFLIGHT_REVIEWS))
+# app.add_handler(CommandHandler(['check', 'c'], Handle_Testflight_Reviews_CheckApps, filters.ChatType.SUPERGROUP & (filters.Entity("url") | filters.Entity("text_link") | filters.Regex(r'[a-zA-Z0-9]{8}')) & filters.Chat(chat_id=int(GROUPS_TESTFLIGHT_CAMPINGAPPS_CHAT))))
 # app.add_handler(CommandHandler(['search', 's'], Search_Testflight_Reviews, CHOOSE_GROUP_TESTFLIGHT_REVIEWS))
-
 
 app.run_polling()

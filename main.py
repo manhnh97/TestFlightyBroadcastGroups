@@ -178,21 +178,45 @@ async def Handle_Testflight_Reviews_Group(update: Update, context: ContextTypes.
     if message and message.text and user_info['is_bot'] == False:
         member_user = user_info['first_name']
         if re.search(r'ree?dee?m|code', message.text):
-            await update.message.reply_text(f"Hi, {member_user}, \
+            await update.message.reply_text(f"Hi {member_user}, \
                                             \nWe have not Redeem Code, use Testflight Links, please. \
                                             \nPlease read: [Redeem Code](https://t.me/testflightR/70210)"
                                             , parse_mode=ParseMode.MARKDOWN)
 
-async def Handle_Testflight_Reviews_CheckApps(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    pass
+# async def Handle_Testflight_Reviews_CheckApps(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # pass
 
+async def Start_Testflight_Reviews(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    member_user = update.message.from_user.to_dict()['first_name']
+    await update.message.reply_text(f"Hi {member_user}, \
+                \n- Use (/help | /start) for help, \
+                \n- Use (/search | /s) to understand search apps \
+                \n- Use (code | redeem) keywords to understand Redeem Code \
+                \n- Updating...")
+
+async def Search_Testflight_Reviews(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    member_user = update.message.from_user.to_dict()['first_name']
+    await update.message.reply_text(f"- Hi {member_user}, \
+                \nPlease use the search function to find apps. \
+                \nExample: \
+                \n- - Find Facebook => #FACEBOOK \
+                \n- - Find Microsoft WORD => #MICROSOFT #WORD \
+                \n- If an app is full, you need to wait until a slot opens up.\
+                \n- We don’t create beta links and we do not control them.\
+                \n- Repeatedly begging for apps will result in a ban.")
+
+# Private bot
 app.add_handler(CommandHandler(['start', 'help'], Start_Now, filters.ChatType.PRIVATE))
 app.add_handler(CommandHandler('cc', Contact_M, filters.ChatType.PRIVATE))
 app.add_handler(MessageHandler(filters.TEXT & filters.ChatType.PRIVATE & filters.Regex(PATTERN_TESTFLIGHT), Handle_TestflightApps_Private))
 app.add_handler(MessageHandler(filters.TEXT & (filters.Entity("url") | filters.Entity("text_link")) & filters.ChatType.PRIVATE, Handle_TestflightApps_Entities))
 
 # Testflight_Reviews
-app.add_handler(MessageHandler(filters.TEXT & (~ filters.COMMAND) & filters.ChatType.SUPERGROUP & filters.Chat(chat_id=int(GROUP_TESTFLIGHT_REVIEWS_ID)), Handle_Testflight_Reviews_Group))
+CHOOSE_GROUP_TESTFLIGHT_REVIEWS = filters.ChatType.SUPERGROUP & filters.Chat(chat_id=int(GROUP_TESTFLIGHT_REVIEWS_ID))
+app.add_handler(MessageHandler(filters.TEXT & (~ filters.COMMAND) & CHOOSE_GROUP_TESTFLIGHT_REVIEWS, Handle_Testflight_Reviews_Group))
 # app.add_handler(CommandHandler(['check', 'c'], Handle_Testflight_Reviews_CheckApps, filters.ChatType.SUPERGROUP & (filters.Entity("url") | filters.Entity("text_link") | filters.Regex(r'[a-zA-Z0-9]{8}')) & filters.Chat(chat_id=int(GROUPS_TESTFLIGHT_CAMPINGAPPS_CHAT))))
+app.add_handler(CommandHandler(['help', 'start'], Start_Testflight_Reviews, CHOOSE_GROUP_TESTFLIGHT_REVIEWS))
+app.add_handler(CommandHandler(['search', 's'], Search_Testflight_Reviews, CHOOSE_GROUP_TESTFLIGHT_REVIEWS))
+
 
 app.run_polling()

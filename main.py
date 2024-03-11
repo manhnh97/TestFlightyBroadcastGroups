@@ -173,26 +173,31 @@ async def Handle_TestflightApps_Entities(update: Update, context: ContextTypes.D
 app = ApplicationBuilder().token(TOKEN_REMINDSLOW_ID).build()
 
 async def Handle_Testflight_Reviews_Group(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    user_info = update.message.from_user.to_dict()
-    message = update.message
-    if message and message.text and user_info['is_bot'] == False:
-        member_user = user_info['first_name']
-        if re.search(r'ree?dee?m|code', message.text):
-            await update.message.reply_text(f"Hi {member_user}, \
-                                            \nWe have not Redeem Code, use Testflight Links, please. \
-                                            \nPlease read: [Redeem Code](https://t.me/testflightR/70210)"
-                                            , parse_mode=ParseMode.MARKDOWN)
+    
+    if update.message:
+        user_info = update.message.from_user.to_dict()
+        message = update.message
+        if message and message.text and user_info['is_bot'] == False:
+            member_user = user_info['first_name']
+            if re.search(r'ree?dee?m|code', message.text):
+                await update.message.reply_text(f"Hi {member_user}, \
+                                                \nWe have not Redeem Code, use only Testflight Links, please. \
+                                                \nPlease read: [Redeem Code](https://t.me/testflightR/70210)"
+                                                , parse_mode=ParseMode.MARKDOWN)
 
 # async def Handle_Testflight_Reviews_CheckApps(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # pass
 
 async def Start_Testflight_Reviews(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    member_user = update.message.from_user.to_dict()['first_name']
-    await update.message.reply_text(f"Hi {member_user}, \
-                \n- Use (/help or /start) for help, \
-                \n- Use (code or redeem) keywords to understand Redeem Code \
-                \n- Updating...")
-                # \n- Use (/search | /s) to understand search apps \
+    
+    if update.message:
+        member_user = update.message.from_user.to_dict()['first_name']
+        await update.message.reply_text(f"Hi {member_user}, \
+                    \n- Use (/help or /start) for help \
+                    \n- How to search apps? [On PC](https://t.me/testflightR/71288) | [On Phone](https://t.me/testflightR/71287) \
+                    \n- How to get Redeem Code? [Read more...](https://t.me/testflightR/70210) \
+                    \n- Updating...", parse_mode=ParseMode.MARKDOWN)
+                    # \n- Use (/search | /s) to understand search apps \
 
 # async def Search_Testflight_Reviews(update: Update, context: ContextTypes.DEFAULT_TYPE):
 #     member_user = update.message.from_user.to_dict()['first_name']

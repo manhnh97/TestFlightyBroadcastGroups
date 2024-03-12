@@ -121,7 +121,7 @@ async def Contact_M(update: Update, context: ContextTypes.DEFAULT_TYPE):
         requests.get(BASE_URL_REDMINDSLOW, data=parameter)
 
 
-async def Handle_TestflightApps_Private(update: Update):
+async def Handle_TestflightApps_Private(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message and update.message.text:
         testflight_link = update.message.text
         if '#' in testflight_link:
@@ -154,7 +154,7 @@ def Handle_Entity_Links(url):
         print("Error: Handle Entity Links:", e)
 
 
-async def Handle_TestflightApps_Entities(update: Update):
+async def Handle_TestflightApps_Entities(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     for entity in update.message.entities:
         if entity.type == 'text_link' and r'testflight.apple.com' in entity.url:
@@ -162,7 +162,7 @@ async def Handle_TestflightApps_Entities(update: Update):
             Handle_Entity_Links(testflight_link)
 
 
-async def Handle_Testflight_Reviews_Group(update: Update):
+async def Handle_Testflight_Reviews_Group(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     if update.message:
         user_info = update.message.from_user.to_dict()

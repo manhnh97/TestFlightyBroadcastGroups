@@ -160,7 +160,7 @@ async def Handle_Testflight_Reviews_Group(update: Update, context: ContextTypes.
         message = update.message
         if message and message.text and user_info['is_bot'] == False:
             member_user = user_info['first_name']
-            if re.search(r'ree?dee?m|code', message.text):
+            if re.search(r'ree?dee?m|code', (message.text).lower()):
                 await update.message.reply_text(f"Hi {member_user}, \
                                                 \nWe have not Redeem Code, use only Testflight Links. \
                                                 \nPlease read: [Redeem Code](https://t.me/testflightR/70210)"
@@ -175,8 +175,8 @@ async def Start_Testflight_Reviews(update: Update, context: ContextTypes.DEFAULT
                     \n- Use (/help or /start) for help. \
                     \n- How to search apps? [On PC](https://t.me/testflightR/71288) | [On Phone](https://t.me/testflightR/71287). \
                     \n- How to get Redeem Code? [Read more...](https://t.me/testflightR/70210). \
-                    \n- Use (/request) to request testflight apps in queue. \
                     \n- Updating...", parse_mode=ParseMode.MARKDOWN)
+                    # \n- Use (/request) to request testflight apps in queue. \
 
 
 app = ApplicationBuilder().token(TOKEN_REMINDSLOW_ID).build()
@@ -188,7 +188,7 @@ app.add_handler(MessageHandler(Members_Bot & filters.Regex(PATTERN_TESTFLIGHT_fu
 app.add_handler(MessageHandler(Members_Bot & (filters.Entity("url") | filters.Entity("text_link")), Handle_TestflightApps_Entities))
 
 # Testflight_Reviews group
-CHOOSE_GROUP_TESTFLIGHT_REVIEWS = CHOOSE_FILTER_SUPERGROUP & filters.Chat(chat_id=int(GROUPS_TESTFLIGHT_M_CHAT))
+CHOOSE_GROUP_TESTFLIGHT_REVIEWS = CHOOSE_FILTER_SUPERGROUP & filters.Chat(chat_id=int(GROUP_TESTFLIGHT_REVIEWS_ID))
 app.add_handler(MessageHandler(filters.TEXT & (~ filters.COMMAND) & CHOOSE_GROUP_TESTFLIGHT_REVIEWS, Handle_Testflight_Reviews_Group))
 app.add_handler(CommandHandler(['help', 'start'], Start_Testflight_Reviews, CHOOSE_GROUP_TESTFLIGHT_REVIEWS))
 

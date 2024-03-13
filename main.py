@@ -101,8 +101,8 @@ async def Contact_M(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     if update.message:
         member_user = update.message.from_user.to_dict()
-        await update.message.reply_text(f"Thank {member_user['first_name']} for your message. \
-                                        \nYour message is important to (Us/Me) and (I/We) will respond as soon as possible.")
+        await update.message.reply_text(f"Thanks {member_user['first_name']}, \
+                                        \nYour message is important to me and I will respond as soon as possible.")
         
         message_contact_m = ' '.join(context.args) 
         parameter = {
@@ -158,7 +158,7 @@ async def Handle_Testflight_Reviews_Group(update: Update, context: ContextTypes.
     if update.message:
         user_info = update.message.from_user.to_dict()
         message = update.message
-        if message and message.text and user_info['is_bot'] == False:
+        if message and message.text and (user_info['is_bot'] == False and user_info['first_name'] != 'Telegram'):
             member_user = user_info['first_name']
             if re.search(r'ree?dee?m|code', (message.text).lower()):
                 await update.message.reply_text(f"Hi {member_user}, \

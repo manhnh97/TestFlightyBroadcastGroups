@@ -1,5 +1,4 @@
 import re
-import asyncio
 import requests
 import warnings
 from lxml import html
@@ -44,28 +43,49 @@ TITLE_REGEX = r'Join the (.+) beta - TestFlight - Apple'
 user_agent = UserAgent()
 warnings.filterwarnings('ignore', category=RuntimeWarning)
 
-async def Send_Message(chat_id, text):
-    parameter = {'chat_id': chat_id, 'text': text}
+
+def Send_Message_Groups(hashtag, url):
+    
+    parameter = {
+        "chat_id": GROUPS_TESTFLIGHT_M_DASHBOARD,
+        "text": f"{hashtag}\n\n{url}"
+    }
+    requests.get(BASE_URL_REDMINDSLOW, data=parameter)
+    
+    parameter = {
+        "message_thread_id": THREAD_NGHIEN_ID,
+        "chat_id": GROUP_TESTFLIGHT_NGHIEN_ID,
+        "text": f"{hashtag}\n\n{url}"
+    }
+    requests.get(BASE_URL_REDMINDSLOW, data=parameter)
+
+    parameter = {
+        "chat_id": GROUP_TESTFLIGHT_1110_ID,
+        "text": f"{hashtag}\n\n{url}"
+    }
+    requests.get(BASE_URL_REDMINDSLOW, data=parameter)
+    
+    parameter = {
+        "chat_id": GROUPS_TESTFLIGHT_X_ID,
+        "text": f"{hashtag}\n\n{url}"
+    }
+    requests.get(BASE_URL_REDMINDSLOW, data=parameter)
+    
+    parameter = {
+        "message_thread_id": THREAD_KGM,
+        "chat_id": GROUP_TESTFLIGHT_KGM_ID,
+        "text": f"{hashtag}\n\n{url}"
+    }
     requests.get(BASE_URL_REDMINDSLOW, data=parameter)
 
 
-async def Send_Message_Groups(hashtag, url):
-    
-    tasks = [
-        Send_Message(GROUPS_TESTFLIGHT_M_DASHBOARD, f"{hashtag}\n\n{url}"),
-        Send_Message(GROUP_TESTFLIGHT_NGHIEN_ID, f"{hashtag}\n\n{url}"),
-        Send_Message(GROUP_TESTFLIGHT_1110_ID, f"{hashtag}\n\n{url}"),
-        Send_Message(GROUPS_TESTFLIGHT_X_ID, f"{hashtag}\n\n{url}"),
-        Send_Message(GROUP_TESTFLIGHT_KGM_ID, f"{hashtag}\n\n{url}")
-    ]
-    await asyncio.gather(*tasks)
+def Send_Message_OnlyGroup(hashtag, url):
+    parameter = {
+    "chat_id": GROUPS_TESTFLIGHT_M_DASHBOARD,
+    "text": f"{hashtag}\n\n{url}"
+    }
+    requests.get(BASE_URL_REDMINDSLOW, data=parameter)
 
-
-async def Send_Message_OnlyGroup(hashtag, url):
-    tasks = [
-        Send_Message(GROUPS_TESTFLIGHT_M_DASHBOARD, f"{hashtag}\n\n{url}"),
-    ]
-    await asyncio.gather(*tasks)
 
 async def Start_Now(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
@@ -93,8 +113,22 @@ async def Contact_M(update: Update, context: ContextTypes.DEFAULT_TYPE):
         requests.get(BASE_URL_REDMINDSLOW, data=parameter)
 
 
-async def Handle_Entity_Links(url):
-    
+async def Handle_TestflightApps_Private(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.message and update.message.text:
+        testflight_link = update.message.text
+        if '#' in testflight_link:
+            
+            url = re.search(PATTERN_TESTFLIGHT_fulllink, testflight_link).group(0)
+            Handle_Entity_Links(url)
+            
+        elif re.search(PATTERN_TESTFLIGHT_fulllink, testflight_link):
+            
+            urls = re.findall(PATTERN_TESTFLIGHT_fulllink, testflight_link)
+            for url in urls:
+                Handle_Entity_Links(url)
+
+
+def Handle_Entity_Links(url):
     headers = {'User-Agent': user_agent.random}
     try:
         r = requests.get(url, headers=headers)
@@ -106,35 +140,17 @@ async def Handle_Entity_Links(url):
             textname_between_tothe_and_beta = title.strip()
             hashtags = re.findall(r"\b\w+\b", textname_between_tothe_and_beta)
             hashtag = " ".join(["#" + hashtag.upper() for hashtag in hashtags])
-            
-            await Send_Message_Groups(hashtag, url)
-            
+            Send_Message_Groups(hashtag, url)
     except (requests.RequestException, IndexError) as e:
         print("Error: Handle Entity Links:", e)
-
-
-async def Handle_TestflightApps_Private(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    
-    if update.message and update.message.text:
-        testflight_link = update.message.text
-        if '#' in testflight_link:
-            
-            url = re.search(PATTERN_TESTFLIGHT_fulllink, testflight_link).group(0)
-            await Handle_Entity_Links(url)
-            
-        elif re.search(PATTERN_TESTFLIGHT_fulllink, testflight_link):
-            
-            urls = re.findall(PATTERN_TESTFLIGHT_fulllink, testflight_link)
-            for url in urls:
-                await Handle_Entity_Links(url)
 
 
 async def Handle_TestflightApps_Entities(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     for entity in update.message.entities:
-        if re.search(PATTERN_TESTFLIGHT_fulllink, entity.url):
+        if entity.type == 'text_link' and r'testflight.apple.com' in entity.url:
             testflight_link = entity.url
-            await Handle_Entity_Links(testflight_link)
+            Handle_Entity_Links(testflight_link)
 
 
 async def Handle_Testflight_Reviews_Group(update: Update, context: ContextTypes.DEFAULT_TYPE):

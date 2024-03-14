@@ -52,11 +52,11 @@ async def Send_Message(chat_id, text):
 async def Send_Message_Groups(hashtag, url):
     
     tasks = [
-        send_message(GROUPS_TESTFLIGHT_M_DASHBOARD, f"{hashtag}\n\n{url}"),
-        send_message(GROUP_TESTFLIGHT_NGHIEN_ID, f"{hashtag}\n\n{url}"),
-        send_message(GROUP_TESTFLIGHT_1110_ID, f"{hashtag}\n\n{url}"),
-        send_message(GROUPS_TESTFLIGHT_X_ID, f"{hashtag}\n\n{url}"),
-        send_message(GROUP_TESTFLIGHT_KGM_ID, f"{hashtag}\n\n{url}")
+        Send_Message(GROUPS_TESTFLIGHT_M_DASHBOARD, f"{hashtag}\n\n{url}"),
+        Send_Message(GROUP_TESTFLIGHT_NGHIEN_ID, f"{hashtag}\n\n{url}"),
+        Send_Message(GROUP_TESTFLIGHT_1110_ID, f"{hashtag}\n\n{url}"),
+        Send_Message(GROUPS_TESTFLIGHT_X_ID, f"{hashtag}\n\n{url}"),
+        Send_Message(GROUP_TESTFLIGHT_KGM_ID, f"{hashtag}\n\n{url}")
     ]
     await asyncio.gather(*tasks)
 

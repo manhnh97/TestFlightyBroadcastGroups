@@ -50,10 +50,13 @@ warnings.filterwarnings('ignore', category=RuntimeWarning)
 async def Send_Message_Telegram(session, chat_id, text, message_thread_id=None):
     parameter = {
         "chat_id": chat_id,
-        "text": text
+        "text": text,
+        "message_thread_id": message_thread_id
     }
-    if message_thread_id is not None:
-        parameter["message_thread_id"] = message_thread_id
+    if parameter["chat_id"] is GROUP_TESTFLIGHT_NGHIEN_ID:
+        parameter["message_thread_id"] = THREAD_NGHIEN_ID
+    elif parameter["chat_id"] is GROUP_TESTFLIGHT_KGM_ID:
+        parameter["message_thread_id"] = THREAD_KGM
     
     async with session.post(BASE_URL_REDMINDSLOW, data=parameter) as response:
         pass

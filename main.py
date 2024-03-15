@@ -1,4 +1,7 @@
+
 import re
+import asyncio
+import aiohttp
 import requests
 import warnings
 from lxml import html
@@ -6,9 +9,9 @@ from telegram import Update
 from fake_useragent import UserAgent
 from telegram.constants import ParseMode
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
-from Send_Message_Groups import Send_Message_Groups
 
 TOKEN_REMINDSLOW_ID = '6717549493:AAEzYjWPhL0IQFQ1rnKEvEJ89lf3sbvxRGc'
+DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1210607511024177202/MqV1JFSHYhawyL6TIbaAMiiDRlQCueE4Xt-NkRBD0cSaGDNePaS1aEb8LjhMIukwg2xx"
 BASE_URL_REDMINDSLOW = f"https://api.telegram.org/bot{TOKEN_REMINDSLOW_ID}/sendMessage"
 
 # Group TestflightCampingApps
@@ -44,48 +47,42 @@ user_agent = UserAgent()
 warnings.filterwarnings('ignore', category=RuntimeWarning)
 
 
-def Send_Message_Groups(hashtag, url):
-    
+async def Send_Message_Telegram(session, chat_id, text, message_thread_id=None):
     parameter = {
-        "chat_id": GROUPS_TESTFLIGHT_M_DASHBOARD,
-        "text": f"{hashtag}\n\n{url}"
+        "chat_id": chat_id,
+        "text": text
     }
-    requests.get(BASE_URL_REDMINDSLOW, data=parameter)
+    if message_thread_id is not None:
+        parameter["message_thread_id"] = message_thread_id
     
-    parameter = {
-        "message_thread_id": THREAD_NGHIEN_ID,
-        "chat_id": GROUP_TESTFLIGHT_NGHIEN_ID,
-        "text": f"{hashtag}\n\n{url}"
-    }
-    requests.get(BASE_URL_REDMINDSLOW, data=parameter)
+    async with session.post(BASE_URL_REDMINDSLOW, data=parameter) as response:
+        pass
 
-    parameter = {
-        "chat_id": GROUP_TESTFLIGHT_1110_ID,
-        "text": f"{hashtag}\n\n{url}"
-    }
-    requests.get(BASE_URL_REDMINDSLOW, data=parameter)
-    
-    parameter = {
-        "chat_id": GROUPS_TESTFLIGHT_X_ID,
-        "text": f"{hashtag}\n\n{url}"
-    }
-    requests.get(BASE_URL_REDMINDSLOW, data=parameter)
-    
-    parameter = {
-        "message_thread_id": THREAD_KGM,
-        "chat_id": GROUP_TESTFLIGHT_KGM_ID,
-        "text": f"{hashtag}\n\n{url}"
-    }
-    requests.get(BASE_URL_REDMINDSLOW, data=parameter)
+async def Send_Message_Discord(session, text):
+    parameter = {"content": text}
+    async with session.post(DISCORD_WEBHOOK_URL, json=parameter):
+        pass
+
+async def Send_Message_Groups(hashtag, url):
+    async with aiohttp.ClientSession() as session:
+        tasks = [
+            Send_Message_Telegram(session, GROUPS_TESTFLIGHT_M_DASHBOARD, f"{hashtag}\n\n{url}"),
+            Send_Message_Telegram(session, GROUP_TESTFLIGHT_NGHIEN_ID, f"{hashtag}\n\n{url}"),
+            Send_Message_Telegram(session, GROUP_TESTFLIGHT_1110_ID, f"{hashtag}\n\n{url}"),
+            Send_Message_Telegram(session, GROUPS_TESTFLIGHT_X_ID, f"{hashtag}\n\n{url}"),
+            Send_Message_Telegram(session, GROUP_TESTFLIGHT_KGM_ID, f"{hashtag}\n\n{url}"),
+            Send_Message_Discord(session, f"{hashtag}\n\n{url}"),
+            Send_Message_Telegram(session, GROUP_TESTFLIGHT_KGM_ID, f"{hashtag}\n\n{url}")
+        ]
+        await asyncio.gather(*tasks)
 
 
-def Send_Message_OnlyGroup(hashtag, url):
-    parameter = {
-    "chat_id": GROUPS_TESTFLIGHT_M_DASHBOARD,
-    "text": f"{hashtag}\n\n{url}"
-    }
-    requests.get(BASE_URL_REDMINDSLOW, data=parameter)
 
+async def Send_Message_OnlyGroup(hashtag, url):
+    tasks = [
+        Send_Message_Telegram(GROUPS_TESTFLIGHT_M_DASHBOARD, f"{hashtag}\n\n{url}"),
+    ]
+    await asyncio.gather(*tasks)
 
 async def Start_Now(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
@@ -110,25 +107,11 @@ async def Contact_M(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "chat_id": GROUP_TESTFLIGHT_CONTACT_M,
             "text": f"chat_id: {member_user['id']}\nusername: {member_user['username']}\nmessage: {message_contact_m}"
         }
-        requests.get(BASE_URL_REDMINDSLOW, data=parameter)
+        requests.post(BASE_URL_REDMINDSLOW, data=parameter)
 
 
-async def Handle_TestflightApps_Private(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.message and update.message.text:
-        testflight_link = update.message.text
-        if '#' in testflight_link:
-            
-            url = re.search(PATTERN_TESTFLIGHT_fulllink, testflight_link).group(0)
-            Handle_Entity_Links(url)
-            
-        elif re.search(PATTERN_TESTFLIGHT_fulllink, testflight_link):
-            
-            urls = re.findall(PATTERN_TESTFLIGHT_fulllink, testflight_link)
-            for url in urls:
-                Handle_Entity_Links(url)
-
-
-def Handle_Entity_Links(url):
+async def Handle_Entity_Links(url):
+    
     headers = {'User-Agent': user_agent.random}
     try:
         r = requests.get(url, headers=headers)
@@ -140,17 +123,34 @@ def Handle_Entity_Links(url):
             textname_between_tothe_and_beta = title.strip()
             hashtags = re.findall(r"\b\w+\b", textname_between_tothe_and_beta)
             hashtag = " ".join(["#" + hashtag.upper() for hashtag in hashtags])
-            Send_Message_Groups(hashtag, url)
+            await Send_Message_Groups(hashtag, url)
+            
     except (requests.RequestException, IndexError) as e:
         print("Error: Handle Entity Links:", e)
+
+
+async def Handle_TestflightApps_Private(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    
+    if update.message and update.message.text:
+        testflight_link = update.message.text
+        if '#' in testflight_link:
+            
+            url = re.search(PATTERN_TESTFLIGHT_fulllink, testflight_link).group(0)
+            await Handle_Entity_Links(url)
+            
+        elif re.search(PATTERN_TESTFLIGHT_fulllink, testflight_link):
+            
+            urls = re.findall(PATTERN_TESTFLIGHT_fulllink, testflight_link)
+            for url in urls:
+                await Handle_Entity_Links(url)
 
 
 async def Handle_TestflightApps_Entities(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     for entity in update.message.entities:
-        if entity.type == 'text_link' and r'testflight.apple.com' in entity.url:
+        if re.search(PATTERN_TESTFLIGHT_fulllink, entity.url):
             testflight_link = entity.url
-            Handle_Entity_Links(testflight_link)
+            await Handle_Entity_Links(testflight_link)
 
 
 async def Handle_Testflight_Reviews_Group(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -174,7 +174,7 @@ async def Start_Testflight_Reviews(update: Update, context: ContextTypes.DEFAULT
         await update.message.reply_text(f"Hi {member_user}, \
                     \n- Use (/help or /start) for help. \
                     \n- How to search apps? [On PC](https://t.me/testflightR/71288) | [On Phone](https://t.me/testflightR/71287). \
-                    \n- How to get Redeem Code? [Read more...](https://t.me/testflightR/70210). \
+                    \n- How to.post Redeem Code? [Read more...](https://t.me/testflightR/70210). \
                     \n- Updating...", parse_mode=ParseMode.MARKDOWN)
                     # \n- Use (/request) to request testflight apps in queue. \
 

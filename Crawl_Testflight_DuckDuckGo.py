@@ -10,18 +10,18 @@ import gspread
 from copy_service_account_file import ValidateServiceAccountJSON #First time
 
 EXISTING_LINKS_FILE = "Testflight_List.txt"
-PATTERN = r'https?://testflight\.apple\.com/join/[a-zA-Z0-9]{8}'
 LISTAPPSEARCH = "Result_ListAppSearch.txt"
+PATTERN = r'https?://testflight\.apple\.com/join/[a-zA-Z0-9]{8}'
 
 
-def search_keywords(driver, list_keywords):
+def Search_Keywords(driver, list_keywords):
     
     keyword = f"Join the {list_keywords} beta site:testflight.apple.com"
     duckduckgo_search = f"https://duckduckgo.com/?q=Join the {keyword.strip()} beta site:testflight.apple.com"
     driver.get(duckduckgo_search)
     wait = WebDriverWait(driver, 60)
 
-    def click_more_results():
+    def Click_More_Results():
         max_attempts = 10
         for _ in range(max_attempts):
             try:
@@ -31,7 +31,7 @@ def search_keywords(driver, list_keywords):
             except NoSuchElementException:
                 print("No more results button found")
                 break
-    click_more_results()
+    Click_More_Results()
 
     elements = driver.find_elements(By.CSS_SELECTOR, '[data-testid="result-extras-url-link"]')
     links_text = '\n'.join(element.get_attribute('href') for element in elements)
@@ -39,7 +39,7 @@ def search_keywords(driver, list_keywords):
         file.write(links_text)
 
 
-def fetch_beta_apps_info(credential):
+def Fetch_Beta_Apps_Info(credential):
     
     try:
         gc = gspread.service_account_from_dict(credential)
@@ -51,7 +51,7 @@ def fetch_beta_apps_info(credential):
         driver = webdriver.Chrome()
         for row in range(1, len(values) + 1):  # Assuming the header is in the first row
             keywords_for_search = values[row][0]
-            search_keywords(driver, keywords_for_search)
+            Search_Keywords(driver, keywords_for_search)
                     
     except Exception:
         pass
@@ -59,7 +59,7 @@ def fetch_beta_apps_info(credential):
         driver.quit()
 
 
-def cleanlistappsearch():
+def Clean_List_App_Search():
     
     with open(EXISTING_LINKS_FILE, 'r', encoding='utf-8') as infile:
         existing_links = {line.strip() for line in infile}
@@ -79,13 +79,14 @@ def cleanlistappsearch():
         for link in list_newtestflight_apps:
             output_unique.write(link + '\n')
 
+
 if __name__ == "__main__":
     main_directory = os.path.dirname(os.path.abspath(__file__))
     listappsearch_folder = os.path.join(main_directory, 'Result_Keywords_Search')
 
     credential = ValidateServiceAccountJSON()
-    fetch_beta_apps_info(credential)
-    cleanlistappsearch()
+    Fetch_Beta_Apps_Info(credential)
+    Clean_List_App_Search()
 
 
 

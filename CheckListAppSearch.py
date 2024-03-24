@@ -44,11 +44,9 @@ def ListProxies():
                 list_proxies.append((proxies['protocol'], proxies['proxy']))
     return list_proxies
 
-def fetch_beta_apps_info(data_proxy):
+def fetch_beta_apps_info(main_directory, data_proxy):
 
-    main_directory = os.path.dirname(os.path.abspath(__file__))
     listappsearch_file = os.path.join(main_directory, 'Result_Keywords_Search', 'Result_ListAppSearch.txt')
-    
     try:
         with open(listappsearch_file, 'r', encoding='utf-8') as infile:
             try:
@@ -85,23 +83,24 @@ def fetch_beta_apps_info(data_proxy):
                             }
                             requests.post(BASE_URL_CAMPINGAPPS, data=parameter)
                         list_newtestflight_apps.add(url)
-                    if count % 20:
+                    if count % 10:
                         sleep(1)
                             
             except (ConnectTimeout, AttributeError, IndexError) as e:
                 print("2", e)
             finally:
-                r.close()
                 session.close()
     except Exception as e:
         print("1" ,e)
 
-# Read existing links into a set
-with open(EXISTING_LINKS_FILE, 'a+', encoding='utf-8') as output_unique:
-    output_unique.write('\n')
-    for link in list_newtestflight_apps:
-        output_unique.write(link + '\n')
+    testflight_list = os.path.join(main_directory, 'Testflight_List.txt')
+    # Read existing links into a set
+    with open(testflight_list, 'a+', encoding='utf-8') as output_unique:
+        output_unique.write('\n')
+        for link in list_newtestflight_apps:
+            output_unique.write(link)
         
 if __name__ == "__main__":
+    main_directory = os.path.dirname(os.path.abspath(__file__))
     data_proxy = ListProxies()
-    fetch_beta_apps_info(data_proxy)
+    fetch_beta_apps_info(main_directory, data_proxy)

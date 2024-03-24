@@ -32,7 +32,7 @@ GROUP_TESTFLIGHT_CONTACT_M = '-1002031575789'
 GROUP_TESTFLIGHT_REVIEWS_ID = '-1001170452834'
 GROUPS_TESTFLIGHT_X_ID = '-1001363951322'
 
-post_by_personal = [863875519, 6325914189, 6775616554]
+post_by_personal = [863875519, 6325914189, 6775616554, 6168275376]
 CHOOSE_FILTER_PRIVATE = filters.ChatType.PRIVATE
 CHOOSE_FILTER_SUPERGROUP = filters.ChatType.SUPERGROUP
 Members_Bot = CHOOSE_FILTER_PRIVATE & filters.TEXT & filters.Chat(post_by_personal)
@@ -138,12 +138,12 @@ async def Handle_TestflightApps_Private(update: Update, context: ContextTypes.DE
     
     if update.message and update.message.text:
         testflight_link = update.message.text
-        if '#' in testflight_link:
+        if '#' in testflight_link and len(testflight_link) > 0:
             
             url = re.search(PATTERN_TESTFLIGHT_fulllink, testflight_link).group(0)
             await Handle_Entity_Links(url)
             
-        elif re.search(PATTERN_TESTFLIGHT_fulllink, testflight_link):
+        elif re.search(PATTERN_TESTFLIGHT_fulllink, testflight_link) and len(testflight_link) > 0:
             
             urls = re.findall(PATTERN_TESTFLIGHT_fulllink, testflight_link)
             for url in urls:
@@ -153,7 +153,7 @@ async def Handle_TestflightApps_Private(update: Update, context: ContextTypes.DE
 async def Handle_TestflightApps_Entities(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     for entity in update.message.entities:
-        if re.search(PATTERN_TESTFLIGHT_fulllink, entity.url):
+        if re.search(PATTERN_TESTFLIGHT_fulllink, entity.url) and len(entity.url) > 0:
             testflight_link = entity.url
             await Handle_Entity_Links(testflight_link)
 

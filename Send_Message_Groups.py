@@ -19,16 +19,23 @@ GROUPS_TESTFLIGHT_M_CHAT = '-1001883897634'
 # Nghien
 THREAD_NGHIEN_ID = '235212'
 GROUP_TESTFLIGHT_NGHIEN_ID = '-1001236644871'
+# Khong gian mang
+THREAD_KGM = '32'
+GROUP_TESTFLIGHT_KGM_ID = '-1001823403288'
 # Testflight1110chat
 GROUP_TESTFLIGHT_1110_ID = '-1002112742740'
 # Testflight_Mesasge
 THREAD_CONTACT_M = '11'
 GROUP_TESTFLIGHT_CONTACT_M = '-1002031575789'
 
-post_by_manhjisme = 863875519
+# Testflight_Reviews
+GROUP_TESTFLIGHT_REVIEWS_ID = '-1001170452834'
+GROUPS_TESTFLIGHT_X_ID = '-1001363951322'
+
+post_by_personal = [863875519, 6325914189, 6775616554]
 CHOOSE_FILTER_PRIVATE = filters.ChatType.PRIVATE
 CHOOSE_FILTER_SUPERGROUP = filters.ChatType.SUPERGROUP
-Members_Bot = CHOOSE_FILTER_PRIVATE & filters.TEXT & filters.Chat(post_by_manhjisme)
+Members_Bot = CHOOSE_FILTER_PRIVATE & filters.TEXT & filters.Chat(post_by_personal)
 
 MAX_RETRIES = 3
 PATTERN_TESTFLIGHT_fulllink = r'https?.*testflight\.apple\.com/join/[a-zA-Z0-9]{8}'
@@ -49,6 +56,9 @@ async def Send_Message_Telegram(session, chat_id, text, message_thread_id=None):
     if parameter["chat_id"] is GROUP_TESTFLIGHT_NGHIEN_ID:
         parameter["message_thread_id"] = THREAD_NGHIEN_ID
     
+    if parameter["chat_id"] is GROUP_TESTFLIGHT_KGM_ID:
+        parameter["message_thread_id"] = THREAD_KGM
+    
     async with session.post(BASE_URL_REDMINDSLOW, data=parameter) as response:
         pass
 
@@ -63,6 +73,8 @@ async def Send_Message_Groups(hashtag, url):
             Send_Message_Telegram(session, GROUPS_TESTFLIGHT_M_DASHBOARD, f"{hashtag}\n\n{url}"),
             Send_Message_Telegram(session, GROUP_TESTFLIGHT_NGHIEN_ID, f"{hashtag}\n\n{url}"),
             Send_Message_Telegram(session, GROUP_TESTFLIGHT_1110_ID, f"{hashtag}\n\n{url}"),
+            Send_Message_Telegram(session, GROUPS_TESTFLIGHT_X_ID, f"{hashtag}\n\n{url}"),
+            Send_Message_Telegram(session, GROUP_TESTFLIGHT_KGM_ID, f"{hashtag}\n\n{url}"),
             Send_Message_Discord(session, f"{hashtag}\n\n{url}"),
         ]
         await asyncio.gather(*tasks)
@@ -78,7 +90,7 @@ async def Start_Now(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     await context.bot.send_message(chat_id=update.effective_chat.id, \
             text="Hi people, \
-                \nThis is my bot and my group @testflightcampingapps. \
+                \nWelcome to my group @testflightcampingapps. \
                 \nThe bot support me post testflight apps soon. \
                 \nCan I help you? Contact me. Use /cc \"your message\", please. \
                 \nHave a great day!")
@@ -92,6 +104,9 @@ async def Contact_M(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                         \nYour message is important to me and I will respond as soon as possible.")
         
         message_contact_m = ' '.join(context.args) 
+        if 'username' not in member_user:
+            member_user['username'] = None
+            
         parameter = {
             "message_thread_id": THREAD_CONTACT_M,
             "chat_id": GROUP_TESTFLIGHT_CONTACT_M,
@@ -142,6 +157,16 @@ async def Handle_TestflightApps_Entities(update: Update, context: ContextTypes.D
             testflight_link = entity.url
             await Handle_Entity_Links(testflight_link)
 
+async def Start_Testflight_Mchat_Group(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    
+    if update.message:
+        member_user = update.message.from_user.to_dict()['first_name']
+        await update.message.reply_text(f"Hi {member_user}, \
+                    \n- Use (/help or /start) for help. \
+                    \n- What is TestFlight? [From NghienMac with love](https://nghienmac.nghienplus.net/1001-cau-hoi-ve-testflight). \
+                    \n1. How to search apps? [On PC](https://t.me/testflightm/1015) | [On Phone](https://t.me/testflightR/71287). \
+                    \n2. How to.post Redeem Code? [Read more...](https://t.me/testflightR/70210). \
+                    \n- Updating...", parse_mode=ParseMode.MARKDOWN)
 
 async def Handle_Testflight_Mchat_Group(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
@@ -157,17 +182,30 @@ async def Handle_Testflight_Mchat_Group(update: Update, context: ContextTypes.DE
                                                 # \nPlease read: [Redeem Code](https://t.me/testflightR/70210)"
 
 
-async def Start_Testflight_Mchat(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def Start_Testflight_Reviews_Group(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     if update.message:
         member_user = update.message.from_user.to_dict()['first_name']
         await update.message.reply_text(f"Hi {member_user}, \
                     \n- Use (/help or /start) for help. \
-                    \n- How to search apps? [On PC](https://t.me/testflightm/1015) | [On Phone](https://t.me/testflightR/71287). \
-                    \n- Use (/request) to request testflight apps in queue. \
+                    \n- What is TestFlight? [From NghienMac with love](https://nghienmac.nghienplus.net/1001-cau-hoi-ve-testflight). \
+                    \n1. How to search apps? [On PC](https://t.me/testflightR/71288) | [On Phone](https://t.me/testflightR/71287). \
+                    \n2. How to.post Redeem Code? [Read more...](https://t.me/testflightR/70210). \
                     \n- Updating...", parse_mode=ParseMode.MARKDOWN)
-                    # \n- How to.post Redeem Code? [Read more...](https://t.me/testflightR/70210). \
 
+
+async def Handle_Testflight_Reviews_Group(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    
+    if update.message:
+        user_info = update.message.from_user.to_dict()
+        message = update.message
+        if message and message.text and (user_info['is_bot'] == False and user_info['first_name'] != 'Telegram'):
+            member_user = user_info['first_name']
+            if re.search(r'ree?dee?m|code', (message.text).lower()):
+                await update.message.reply_text(f"Hi {member_user}, \
+                                                \nWe have not Redeem Code, use only Testflight Links. \
+                                                \nPlease read: [Redeem Code](https://t.me/testflightR/70210" \
+                                                    , parse_mode=ParseMode.MARKDOWN)
 
 app = ApplicationBuilder().token(TOKEN_REMINDSLOW_ID).build()
 # Testflight_Bot_Private
@@ -178,8 +216,13 @@ app.add_handler(MessageHandler(Members_Bot & filters.Regex(PATTERN_TESTFLIGHT_fu
 app.add_handler(MessageHandler(Members_Bot & (filters.Entity("url") | filters.Entity("text_link")), Handle_TestflightApps_Entities))
 
 # TestflightM Chat group
-CHOOSE_GROUP_TESTFLIGHT_REVIEWS = CHOOSE_FILTER_SUPERGROUP & filters.Chat(chat_id=int(GROUPS_TESTFLIGHT_M_CHAT))
-app.add_handler(MessageHandler(filters.TEXT & (~ filters.COMMAND) & CHOOSE_GROUP_TESTFLIGHT_REVIEWS, Handle_Testflight_Mchat_Group))
-app.add_handler(CommandHandler(['help', 'start'], Start_Testflight_Mchat, CHOOSE_GROUP_TESTFLIGHT_REVIEWS))
+CHOOSE_GROUP_TESTFLIGHT_M = CHOOSE_FILTER_SUPERGROUP & filters.Chat(chat_id=int(GROUPS_TESTFLIGHT_M_CHAT))
+app.add_handler(MessageHandler(filters.TEXT & (~ filters.COMMAND) & CHOOSE_GROUP_TESTFLIGHT_M, Handle_Testflight_Mchat_Group))
+app.add_handler(CommandHandler(['help', 'start'], Start_Testflight_Mchat_Group, CHOOSE_GROUP_TESTFLIGHT_M))
+
+# Testflight Reviews group
+CHOOSE_GROUP_TESTFLIGHT_REVIEWS = CHOOSE_FILTER_SUPERGROUP & filters.Chat(chat_id=int(GROUP_TESTFLIGHT_REVIEWS_ID))
+app.add_handler(MessageHandler(filters.TEXT & (~ filters.COMMAND) & CHOOSE_GROUP_TESTFLIGHT_REVIEWS, Handle_Testflight_Reviews_Group))
+app.add_handler(CommandHandler(['help', 'start'], Start_Testflight_Reviews_Group, CHOOSE_GROUP_TESTFLIGHT_REVIEWS))
 
 app.run_polling()

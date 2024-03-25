@@ -170,8 +170,8 @@ async def Start_Testflight_Mchat_Group(update: Update, context: ContextTypes.DEF
 
 async def Handle_Testflight_Mchat_Group(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
+    user_info = update.message.from_user.to_dict()
     if update.message:
-        user_info = update.message.from_user.to_dict()
         message = update.message
         if message and message.text and (user_info['is_bot'] == False and user_info['first_name'] != 'Telegram'):
             member_user = user_info['first_name']
@@ -196,8 +196,8 @@ async def Start_Testflight_Reviews_Group(update: Update, context: ContextTypes.D
 
 async def Handle_Testflight_Reviews_Group(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
+    user_info = update.message.from_user.to_dict()
     if update.message:
-        user_info = update.message.from_user.to_dict()
         message = update.message
         if message and message.text and (user_info['is_bot'] == False and user_info['first_name'] != 'Telegram'):
             member_user = user_info['first_name']
@@ -206,6 +206,14 @@ async def Handle_Testflight_Reviews_Group(update: Update, context: ContextTypes.
                                                 \nWe have not Redeem Code, use only Testflight Links. \
                                                 \nPlease read: [Redeem Code](https://t.me/testflightR/70210" \
                                                     , parse_mode=ParseMode.MARKDOWN)
+
+
+async def Report_Testflight_Groups(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    
+    user_info = update.message.from_user.to_dict()
+    if update.message and (user_info['is_bot'] == False and user_info['first_name'] != 'Telegram'):
+        await update.message.reply_text(f"Thanks {user_info['first_name']}, \
+                                        \n\[URGENT] [manhjisme](tg://user?id=863875519)", parse_mode=ParseMode.MARKDOWN)
 
 app = ApplicationBuilder().token(TOKEN_REMINDSLOW_ID).build()
 # Testflight_Bot_Private
@@ -224,5 +232,8 @@ app.add_handler(CommandHandler(['help', 'start'], Start_Testflight_Mchat_Group, 
 CHOOSE_GROUP_TESTFLIGHT_REVIEWS = CHOOSE_FILTER_SUPERGROUP & filters.Chat(chat_id=int(GROUP_TESTFLIGHT_REVIEWS_ID))
 app.add_handler(MessageHandler(filters.TEXT & (~ filters.COMMAND) & CHOOSE_GROUP_TESTFLIGHT_REVIEWS, Handle_Testflight_Reviews_Group))
 app.add_handler(CommandHandler(['help', 'start'], Start_Testflight_Reviews_Group, CHOOSE_GROUP_TESTFLIGHT_REVIEWS))
+
+# Testflight MyAdmin Groups
+app.add_handler(CommandHandler('report', Report_Testflight_Groups, CHOOSE_FILTER_SUPERGROUP))
 
 app.run_polling()

@@ -1,28 +1,14 @@
-from time import sleep
-import requests
+import os
 import re
-from fake_useragent import UserAgent
-from requests.exceptions import ConnectTimeout
-from requests.adapters import HTTPAdapter
-from random import choice
+import requests
 from lxml import html
+from time import sleep
+from random import choice
+from fake_useragent import UserAgent
+from requests.adapters import HTTPAdapter
+from requests.exceptions import ConnectTimeout
 
 
-# Constants
-URL_PROXIES = "https://api.proxyscrape.com/v3/free-proxy-list/get?request=displayproxies&proxy_format=ipport&format=json"
-TXT_RESULT_NEWTESTERS_BETA_APPS = "Result_Testflight_NewTesters_BetaApps.md"
-TXT_RESULT_ERROR_BETA_APPS =        "Result_Testflight_Error_BetaApps.md"
-
-TOKEN_REMINDSLOW_ID = '6717549493:AAEzYjWPhL0IQFQ1rnKEvEJ89lf3sbvxRGc'
-BASE_URL_REMINDSLOW = f"https://api.telegram.org/bot{TOKEN_REMINDSLOW_ID}/sendMessage"
-GROUP_TESTFLIGHT_CAMPINGAPPS_ID = '-1002052388225'
-
-XPATH_STATUS = '//*[@class="beta-status"]/span/text()'
-XPATH_TITLE = '/html/head/title/text()'
-TITLE_REGEX = r'Join the (.+) beta - TestFlight - Apple'
-FULL_TEXTS = ['This beta is full.',
-              "This beta isn't accepting any new testers right now."]
-MAX_RETRIES = 3
 
 def ListProxies():
     list_proxies = []
@@ -38,8 +24,9 @@ def ListProxies():
     return list_proxies
 
 def fetch_beta_apps_info(data_proxy):
-    with open(TXT_RESULT_NEWTESTERS_BETA_APPS, 'r', encoding='utf-8') as txt_result_newtesters_testflight_file, \
-        open(TXT_RESULT_ERROR_BETA_APPS, 'w', encoding='utf-8') as txt_result_error_link_testflight_file:
+    var_newtesters = set()
+    var_errorlinks = set()
+    with open(TXT_RESULT_NEWTESTERS_BETA_APPS, 'r', encoding='utf-8') as txt_result_newtesters_testflight_file:
         urls = list(set(txt_result_newtesters_testflight_file.read().split()))
         user_agent = UserAgent()
         session = requests.Session()
@@ -88,9 +75,7 @@ def fetch_beta_apps_info(data_proxy):
                                     "text": f"{hashtag}\n{url_testflight}\nOpening for New Testers"
                                 }
                                 requests.post(BASE_URL_REMINDSLOW, data=parameter)
-                                txt_result_error_link_testflight_file.write(f"{url_testflight}\n")
-                else:
-                    txt_result_error_link_testflight_file.write(f"{url_testflight}\n")
+                    var_newtesters.add(f"{url_testflight}\n")
         except (ConnectTimeout, TimeoutError, OSError) as e:
             print(f"Connection error: {e}")
             headers = {'User-Agent': user_agent.random}
@@ -99,19 +84,34 @@ def fetch_beta_apps_info(data_proxy):
             pass
         finally:
             session.close()
+            return var_newtesters
 
-def update_testflight_list():
-    with open(TXT_RESULT_NEWTESTERS_BETA_APPS, 'r', encoding='utf-8') as f1, \
-        open(TXT_RESULT_ERROR_BETA_APPS, 'r', encoding='utf-8') as f2:
-        lines_f1 = f1.read().splitlines()
-        lines_f2 = f2.read().splitlines()
-    unique_lines_f1 = list(set(lines_f1))
-    updated_lines_f1 = [line for line in unique_lines_f1 if line not in lines_f2]
+def update_testflight_list(var_newtesters):
+    with open(TXT_RESULT_TESTFLIGHT_LIST, 'r', encoding='utf-8') as f1:
+        updated_lines_f1 = [line for line in var_newtesters if line not in TXT_RESULT_NEWTESTERS_BETA_APPS]
     
-    with open(TXT_RESULT_NEWTESTERS_BETA_APPS, 'w', encoding='utf-8') as f1:
+    with open(TXT_RESULT_TESTFLIGHT_LIST, 'a+', encoding='utf-8') as f1:
         f1.write('\n'.join(updated_lines_f1))
 
 if __name__ == "__main__":
+    URL_PROXIES = "https://api.proxyscrape.com/v3/free-proxy-list/get?request=displayproxies&proxy_format=ipport&format=json"
+    
+    MAIN_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
+    
+    TXT_RESULT_TESTFLIGHT_LIST = os.path.join(MAIN_DIRECTORY, "Testflight_List.txt")
+    TXT_RESULT_NEWTESTERS_BETA_APPS = os.path.join(MAIN_DIRECTORY, "DATA_TESTFLIGHT_NEWTESTERS", "Result_Testflight_NewTesters_BetaApps.md")
+
+    TOKEN_REMINDSLOW_ID = '6717549493:AAEzYjWPhL0IQFQ1rnKEvEJ89lf3sbvxRGc'
+    BASE_URL_REMINDSLOW = f"https://api.telegram.org/bot{TOKEN_REMINDSLOW_ID}/sendMessage"
+    GROUP_TESTFLIGHT_CAMPINGAPPS_ID = '-1002052388225'
+
+    XPATH_STATUS = '//*[@class="beta-status"]/span/text()'
+    XPATH_TITLE = '/html/head/title/text()'
+    TITLE_REGEX = r'Join the (.+) beta - TestFlight - Apple'
+    FULL_TEXTS = ['This beta is full.',
+                "This beta isn't accepting any new testers right now."]
+    MAX_RETRIES = 5
+    
     data_proxy = ListProxies()
-    fetch_beta_apps_info(data_proxy)
-    update_testflight_list()
+    var_newtesters = fetch_beta_apps_info(data_proxy)
+    update_testflight_list(var_newtesters)

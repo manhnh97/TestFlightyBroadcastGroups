@@ -88,12 +88,15 @@ def Search_Keywords(driver, list_keywords):
                     hashtags = re.findall(r"\b\w+\b", textname_between_tothe_and_beta)
                     hashtag = " ".join(["#" + hashtag.upper() for hashtag in hashtags])
                     parameter = {
-                        "chat_id": GROUPS_TESTFLIGHT_X_ID,
+                        "chat_id": GROUPS_TESTFLIGHT_M_DASHBOARD,
                         "text": f"{hashtag}\n\n{link}"
                     }
-                    requests.post(BASE_URL_REDMINDSLOW, data=parameter)
+                    requests.post(BASE_URL_CAMPINGAPPS, data=parameter)
                     if count % 5 == 0:
-                        sleep(1)
+                        sleep(3)
+                    
+                    if count > 10:
+                        break
             new_testflight_links.add(link)
     
     list_newtestflight_apps.clear()
@@ -115,17 +118,19 @@ def Fetch_Beta_Apps_Info(credential):
         worksheet = sh.worksheet("DuckDuckGo_S")
         
         values = worksheet.get_all_values()
-        
-        driver = webdriver.Chrome()
-        for row in range(len(values)):  # Assuming the header is in the first row
-            keywords_for_search = values[row][0]
-            if keywords_for_search is not None:
-                Search_Keywords(driver, keywords_for_search)
+        try: 
+            driver = webdriver.Chrome()
+            for row in range(len(values)):  # Assuming the header is in the first row
+                keywords_for_search = values[row][0]
+                if keywords_for_search is not None:
+                    Search_Keywords(driver, keywords_for_search)
+        except Exception as e:
+            print("driver:", e)
+        finally: 
+            driver.quit()
         
     except Exception as e:
         print(e)
-    finally: 
-        driver.quit()
 
 if __name__ == "__main__":
     main_directory = os.path.dirname(os.path.abspath(__file__))

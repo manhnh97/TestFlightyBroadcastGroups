@@ -25,7 +25,6 @@ def ListProxies():
 
 def fetch_beta_apps_info(data_proxy):
     var_newtesters = set()
-    var_errorlinks = set()
     with open(TXT_RESULT_NEWTESTERS_BETA_APPS, 'r', encoding='utf-8') as txt_result_newtesters_testflight_file:
         urls = list(set(txt_result_newtesters_testflight_file.read().split()))
         user_agent = UserAgent()
@@ -70,12 +69,12 @@ def fetch_beta_apps_info(data_proxy):
                             if title_match:
                                 hashtags = re.findall(r"\b\w+\b", title_match[0].strip())
                                 hashtag = " ".join(["#" + tag.upper() for tag in hashtags])
-                                parameter = {
-                                    "chat_id": GROUP_TESTFLIGHT_CAMPINGAPPS_ID,
-                                    "text": f"{hashtag}\n{url_testflight}\nOpening for New Testers"
-                                }
-                                requests.post(BASE_URL_REMINDSLOW, data=parameter)
-                    var_newtesters.add(f"{url_testflight}\n")
+                                # parameter = {
+                                #     "chat_id": GROUP_TESTFLIGHT_CAMPINGAPPS_ID,
+                                #     "text": f"{hashtag}\n{url_testflight}\nOpening for New Testers"
+                                # }
+                                # requests.post(BASE_URL_REMINDSLOW, data=parameter)
+                    var_newtesters.add(url_testflight)
         except (ConnectTimeout, TimeoutError, OSError) as e:
             print(f"Connection error: {e}")
             headers = {'User-Agent': user_agent.random}
@@ -87,6 +86,7 @@ def fetch_beta_apps_info(data_proxy):
             return var_newtesters
 
 def update_testflight_list(var_newtesters):
+    
     with open(TXT_RESULT_TESTFLIGHT_LIST, 'r', encoding='utf-8') as f1:
         updated_lines_f1 = [line for line in var_newtesters if line not in TXT_RESULT_NEWTESTERS_BETA_APPS]
     

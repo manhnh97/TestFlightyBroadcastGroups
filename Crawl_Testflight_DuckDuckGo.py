@@ -4,25 +4,25 @@ import gspread
 import requests
 from lxml import html
 from time import sleep
+from winsound import Beep
 from selenium import webdriver
 from fake_useragent import UserAgent
 from requests.adapters import HTTPAdapter
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import NoSuchElementException
-from selenium.webdriver.support import expected_conditions as EC
 from copy_service_account_file import ValidateServiceAccountJSON #First time
-from winsound import Beep
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import StaleElementReferenceException
 
 def Search_Keywords(driver, keyword):
-    headers = {'User-Agent': user_agent.random}
     
     duckduckgo_search = f"https://duckduckgo.com/?q=Join the {keyword.strip()} beta site:testflight.apple.com"
     driver.get(duckduckgo_search)
-    wait = WebDriverWait(driver, 30)
+    wait = WebDriverWait(driver, 60)
 
     def Click_More_Results():
-        max_attempts = 15
+        max_attempts = 10
         for _ in range(max_attempts):
             try:
                 more_results_button = wait.until(EC.element_to_be_clickable((By.ID, "more-results")))
@@ -46,6 +46,7 @@ def Search_Keywords(driver, keyword):
     
     for link in list_newtestflight_apps:
         if link not in existing_links:
+            headers = {'User-Agent': user_agent.random}
             r = session.get(link, headers=headers)
             if r.status_code == 429:
                 headers = {'User-Agent': user_agent.random}
@@ -88,9 +89,14 @@ def Fetch_Beta_Apps_Info(credential):
         try: 
             driver = webdriver.Chrome()
             for row in range(1, len(values)):  # Assuming the header is in the first row
-                keywords_for_search = values[row][0]
-                if keywords_for_search is not None:
-                    Search_Keywords(driver, keywords_for_search)
+                try:
+                    keywords_for_search = values[row][0]
+                    if keywords_for_search is not None:
+                        Search_Keywords(driver, keywords_for_search)
+                except StaleElementReferenceException:
+                        print("Stale element reference encountered, refreshing elements...")
+                        elements = driver.find_elements(By.CSS_SELECTOR, '[data-testid="result-extras-url-link"]')
+                        continue
         except Exception as e:
             print("driver:", e)
         finally: 

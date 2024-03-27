@@ -24,7 +24,8 @@ def ListProxies():
     return list_proxies
 
 def fetch_beta_apps_info(data_proxy):
-    var_newtesters = []
+    var_not_available_newtesters = []
+    var_available_newtesters = []
     with open(TXT_RESULT_NEWTESTERS_BETA_APPS, 'r', encoding='utf-8') as txt_result_newtesters_testflight_file:
         urls = list(set(txt_result_newtesters_testflight_file.read().split()))
         user_agent = UserAgent()
@@ -57,7 +58,7 @@ def fetch_beta_apps_info(data_proxy):
                     page = html.fromstring(r.text)
                     status_elements = page.xpath(XPATH_STATUS)
                     title_elements = page.xpath(XPATH_TITLE)
-                    
+                    testflight_code = re.findall(PATTERN_CODE, url_testflight.strip())
                     if status_elements and title_elements:
                         status = status_elements[0]
                         title = title_elements[0]
@@ -74,10 +75,10 @@ def fetch_beta_apps_info(data_proxy):
                                     "text": f"{hashtag}\n{url_testflight}\nOpening for New Testers"
                                 }
                                 requests.post(BASE_URL_REMINDSLOW, data=parameter)
-                    
-                    matches = re.findall(PATTERN_CODE, url_testflight.strip())
-
-                    var_newtesters.extend(matches)
+                                
+                                var_available_newtesters.extend(testflight_code)
+                        else:
+                            var_not_available_newtesters.extend(testflight_code)
         except (ConnectTimeout, TimeoutError, OSError) as e:
             print(f"Connection error: {e}")
             headers = {'User-Agent': user_agent.random}
@@ -86,23 +87,29 @@ def fetch_beta_apps_info(data_proxy):
             pass
         finally:
             session.close()
-            return var_newtesters
+            return var_available_newtesters, var_not_available_newtesters
 
-def update_testflight_list(var_newtesters):
+def update_testflight_list(var_available_newtesters='', var_not_available_newtesters=''):
 
-    var_newtesters = set(var_newtesters)
-    testflight_list = []
+    var_available_newtesters = set(var_available_newtesters)
+    var_not_available_newtesters = set(var_not_available_newtesters)
+    
+    testflight_list_file = []
     
     with open(TXT_RESULT_TESTFLIGHT_LIST, 'r', encoding='utf-8') as f1:
         for line in f1:
             matches = re.findall(PATTERN_CODE,line.strip())
-            testflight_list.extend(matches)
+            testflight_list_file.extend(matches)
     
-    updated_lines_f1 = [line for line in var_newtesters if line not in testflight_list]
+    testflight_code_available = [line for line in var_available_newtesters if line not in testflight_list_file]
     
     with open(TXT_RESULT_TESTFLIGHT_LIST, 'a+', encoding='utf-8') as f1:
-        for line in updated_lines_f1:
+        for line in testflight_code_available:
             f1.write(f'\nhttps://testflight.apple.com/join/{line}')
+    
+    with open(TXT_RESULT_NEWTESTERS_BETA_APPS, 'w', encoding='utf-8') as f1:
+        for line in var_not_available_newtesters:
+            f1.write(f'https://testflight.apple.com/join/{line}\n')
 
 if __name__ == "__main__":
     URL_PROXIES = "https://api.proxyscrape.com/v3/free-proxy-list/get?request=displayproxies&proxy_format=ipport&format=json"
@@ -125,5 +132,5 @@ if __name__ == "__main__":
     MAX_RETRIES = 5
     
     data_proxy = ListProxies()
-    var_newtesters = fetch_beta_apps_info(data_proxy)
-    update_testflight_list(var_newtesters)
+    var_available_newtesters, var_not_available_newtesters = fetch_beta_apps_info(data_proxy)
+    update_testflight_list(var_available_newtesters, var_not_available_newtesters)

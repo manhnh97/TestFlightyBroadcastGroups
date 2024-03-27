@@ -24,7 +24,7 @@ def ListProxies():
     return list_proxies
 
 def fetch_beta_apps_info(data_proxy):
-    var_newtesters = set()
+    var_newtesters = []
     with open(TXT_RESULT_NEWTESTERS_BETA_APPS, 'r', encoding='utf-8') as txt_result_newtesters_testflight_file:
         urls = list(set(txt_result_newtesters_testflight_file.read().split()))
         user_agent = UserAgent()
@@ -69,12 +69,15 @@ def fetch_beta_apps_info(data_proxy):
                             if title_match:
                                 hashtags = re.findall(r"\b\w+\b", title_match[0].strip())
                                 hashtag = " ".join(["#" + tag.upper() for tag in hashtags])
-                                # parameter = {
-                                #     "chat_id": GROUP_TESTFLIGHT_CAMPINGAPPS_ID,
-                                #     "text": f"{hashtag}\n{url_testflight}\nOpening for New Testers"
-                                # }
-                                # requests.post(BASE_URL_REMINDSLOW, data=parameter)
-                    var_newtesters.add(url_testflight)
+                                parameter = {
+                                    "chat_id": GROUP_TESTFLIGHT_CAMPINGAPPS_ID,
+                                    "text": f"{hashtag}\n{url_testflight}\nOpening for New Testers"
+                                }
+                                requests.post(BASE_URL_REMINDSLOW, data=parameter)
+                    
+                    matches = re.findall(PATTERN_CODE, url_testflight.strip())
+
+                    var_newtesters.extend(matches)
         except (ConnectTimeout, TimeoutError, OSError) as e:
             print(f"Connection error: {e}")
             headers = {'User-Agent': user_agent.random}
@@ -86,12 +89,20 @@ def fetch_beta_apps_info(data_proxy):
             return var_newtesters
 
 def update_testflight_list(var_newtesters):
+
+    var_newtesters = set(var_newtesters)
+    testflight_list = []
     
     with open(TXT_RESULT_TESTFLIGHT_LIST, 'r', encoding='utf-8') as f1:
-        updated_lines_f1 = [line for line in var_newtesters if line not in TXT_RESULT_NEWTESTERS_BETA_APPS]
+        for line in f1:
+            matches = re.findall(PATTERN_CODE,line.strip())
+            testflight_list.extend(matches)
+    
+    updated_lines_f1 = [line for line in var_newtesters if line not in testflight_list]
     
     with open(TXT_RESULT_TESTFLIGHT_LIST, 'a+', encoding='utf-8') as f1:
-        f1.write('\n'.join(updated_lines_f1))
+        for line in updated_lines_f1:
+            f1.write(f'\nhttps://testflight.apple.com/join/{line}')
 
 if __name__ == "__main__":
     URL_PROXIES = "https://api.proxyscrape.com/v3/free-proxy-list/get?request=displayproxies&proxy_format=ipport&format=json"
@@ -105,6 +116,7 @@ if __name__ == "__main__":
     BASE_URL_REMINDSLOW = f"https://api.telegram.org/bot{TOKEN_REMINDSLOW_ID}/sendMessage"
     GROUP_TESTFLIGHT_CAMPINGAPPS_ID = '-1002052388225'
 
+    PATTERN_CODE = r'[a-zA-Z0-9]{8}\/?$'
     XPATH_STATUS = '//*[@class="beta-status"]/span/text()'
     XPATH_TITLE = '/html/head/title/text()'
     TITLE_REGEX = r'Join the (.+) beta - TestFlight - Apple'

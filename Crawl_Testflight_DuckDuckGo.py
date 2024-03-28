@@ -15,12 +15,9 @@ from copy_service_account_file import ValidateServiceAccountJSON #First time
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import StaleElementReferenceException
 
-def Search_Keywords(driver, keyword):
-    
-    duckduckgo_search = f"https://duckduckgo.com/?q=Join the {keyword.strip()} beta site:testflight.apple.com"
-    driver.get(duckduckgo_search)
+def Search_Keywords(driver):
+        
     wait = WebDriverWait(driver, 60)
-
     def Click_More_Results():
         max_attempts = 10
         for _ in range(max_attempts):
@@ -92,10 +89,19 @@ def Fetch_Beta_Apps_Info(credential):
                 try:
                     keywords_for_search = values[row][0]
                     if keywords_for_search is not None:
-                        Search_Keywords(driver, keywords_for_search)
+                        duckduckgo_search = f"https://duckduckgo.com/?q=Join+the+{keywords_for_search.strip()}+beta+site:testflight.apple.com"
+                        driver.get(duckduckgo_search)
+                        
+                        # Safe search: off
+                        element_safe_search = driver.find_element(By.XPATH, '//*[@id="links_wrapper"]/div/div/div/div[2]/a').text
+                        if 'safe search: off' not in element_safe_search.lower():
+                            driver.find_element(By.XPATH, '//*[@id="links_wrapper"]/div/div/div/div[2]').click()
+                            driver.find_element(By.XPATH, '/html/body/div[6]/div[2]/div/div/ol/li[4]/a').click()
+
+                        Search_Keywords(driver)
                 except StaleElementReferenceException:
                         print("Stale element reference encountered, refreshing elements...")
-                        elements = driver.find_elements(By.CSS_SELECTOR, '[data-testid="result-extras-url-link"]')
+                        # driver.find_elements(By.CSS_SELECTOR, '[data-testid="result-extras-url-link"]')
                         continue
         except Exception as e:
             print("driver:", e)

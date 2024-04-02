@@ -17,7 +17,7 @@ from selenium.common.exceptions import StaleElementReferenceException
 
 def Search_Keywords(driver):
         
-    wait = WebDriverWait(driver, 60)
+    wait = WebDriverWait(driver, 120)
     def Click_More_Results():
         max_attempts = 10
         for _ in range(max_attempts):

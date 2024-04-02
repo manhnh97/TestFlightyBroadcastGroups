@@ -238,6 +238,7 @@ app.add_handler(MessageHandler(filters.TEXT & (~ filters.COMMAND) & CHOOSE_GROUP
 app.add_handler(CommandHandler(['help', 'start'], Start_Testflight_Reviews_Group, CHOOSE_GROUP_TESTFLIGHT_REVIEWS))
 
 # Testflight MyAdmin Groups
-# app.add_handler(CommandHandler(['report', 'ban'], Report_Testflight_Groups, CHOOSE_FILTER_SUPERGROUP))
+CHOOSE_GROUP_TESTFLIGHT_M_REVIEWS = CHOOSE_FILTER_SUPERGROUP & filters.Chat(chat_id=[int(GROUP_TESTFLIGHT_REVIEWS_ID), int(GROUPS_TESTFLIGHT_M_CHAT), int(GROUP_TESTFLIGHT_1110_ID)])
+app.add_handler(CommandHandler(['report', 'ban'], Report_Testflight_Groups, CHOOSE_GROUP_TESTFLIGHT_M_REVIEWS))
 
 app.run_polling()

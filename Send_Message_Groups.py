@@ -8,6 +8,8 @@ from telegram import Update
 from fake_useragent import UserAgent
 from telegram.constants import ParseMode
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
+import httpx
+from httpx import ReadError, NetworkError
 
 TOKEN_REMINDSLOW_ID = '6717549493:AAEzYjWPhL0IQFQ1rnKEvEJ89lf3sbvxRGc'
 DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1210607511024177202/MqV1JFSHYhawyL6TIbaAMiiDRlQCueE4Xt-NkRBD0cSaGDNePaS1aEb8LjhMIukwg2xx"
@@ -38,7 +40,7 @@ CHOOSE_FILTER_SUPERGROUP = filters.ChatType.SUPERGROUP
 Members_Bot = CHOOSE_FILTER_PRIVATE & filters.TEXT & filters.Chat(post_by_personal)
 
 MAX_RETRIES = 3
-PATTERN_TESTFLIGHT_fulllink = r'https?.*testflight\.apple\.com/join/[a-zA-Z0-9]{8}'
+PATTERN_TESTFLIGHT_fulllink = r'https?.*testflight\.apple\.com/join/[a-zA-Z0-9]{8}\??'
 XPATH_STATUS = '//*[@class="beta-status"]/span/text()'
 XPATH_TITLE = '/html/head/title/text()'
 TITLE_REGEX = r'Join the (.+) beta - TestFlight - Apple'
@@ -98,7 +100,7 @@ async def Start_Now(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def Contact_M(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
-    if update.message:
+    if update is not None and update.message is not None:
         member_user = update.message.from_user.to_dict()
         await update.message.reply_text(f"Thanks {member_user['first_name']}, \
                                         \nYour message is important to me and I will respond as soon as possible.")
@@ -159,7 +161,7 @@ async def Handle_TestflightApps_Entities(update: Update, context: ContextTypes.D
 
 async def Start_Testflight_Mchat_Group(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
-    if update.message:
+    if update is not None or update.message is not None:
         member_user = update.message.from_user.to_dict()['first_name']
         await update.message.reply_text(f"Hi {member_user}, \
                     \n- Use (/help or /start) for help. \
@@ -170,21 +172,22 @@ async def Start_Testflight_Mchat_Group(update: Update, context: ContextTypes.DEF
 
 async def Handle_Testflight_Mchat_Group(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
-    user_info = update.message.from_user.to_dict()
-    if update.message:
-        message = update.message
-        if message and message.text and (user_info['is_bot'] == False and user_info['first_name'] != 'Telegram'):
-            member_user = user_info['first_name']
-            if re.search(r'ree?dee?m|code', (message.text).lower()):
-                await update.message.reply_text(f"Hi {member_user}, \
-                                                \nWe have not Redeem Code, use only Testflight Links." \
+    if update is not None and update.message is not None:
+        user_info = update.message.from_user.to_dict()
+        if update.message:
+            message = update.message
+            if message and message.text and (user_info['is_bot'] == False and user_info['first_name'] != 'Telegram'):
+                member_user = user_info['first_name']
+                if re.search(r'ree?dee?m|code', (message.text).lower()):
+                    await update.message.reply_text(f"Hi {member_user}, \
+                                                    \nWe have not Redeem Code, use only Testflight Links." \
                                                     , parse_mode=ParseMode.MARKDOWN)
                                                 # \nPlease read: [Redeem Code](https://t.me/testflightR/70210)"
 
 
 async def Start_Testflight_Reviews_Group(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
-    if update.message:
+    if update is not None and update.message is not None:
         member_user = update.message.from_user.to_dict()['first_name']
         await update.message.reply_text(f"Hi {member_user}, \
                     \n- Use (/help or /start) for help. \
@@ -196,7 +199,7 @@ async def Start_Testflight_Reviews_Group(update: Update, context: ContextTypes.D
 
 async def Handle_Testflight_Reviews_Group(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
-    if update is not None or update.message is not None:
+    if update is not None and update.message is not None:
         user_info = update.message.from_user.to_dict()
         message = update.message
         if message and message.text and (user_info['is_bot'] == False and user_info['first_name'] != 'Telegram'):
@@ -210,10 +213,11 @@ async def Handle_Testflight_Reviews_Group(update: Update, context: ContextTypes.
 
 async def Report_Testflight_Groups(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
-    user_info = update.message.from_user.to_dict()
-    if update.message and (user_info['is_bot'] == False and user_info['first_name'] != 'Telegram'):
-        await update.message.reply_text(f"Thanks {user_info['first_name']}, \
-                                        \n\[URGENT] [manhjisme](tg://user?id=863875519)", parse_mode=ParseMode.MARKDOWN)
+    if update is not None or update.message is not None:
+        user_info = update.message.from_user.to_dict()
+        if (user_info['is_bot'] == False and user_info['first_name'] != 'Telegram'):
+            await update.message.reply_text(f"Thanks {user_info['first_name']}, \
+                                            \n\[URGENT] [manhjisme](tg://user?id=863875519)", parse_mode=ParseMode.MARKDOWN)
 
 app = ApplicationBuilder().token(TOKEN_REMINDSLOW_ID).build()
 # Testflight_Bot_Private

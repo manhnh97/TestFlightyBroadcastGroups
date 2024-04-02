@@ -196,8 +196,8 @@ async def Start_Testflight_Reviews_Group(update: Update, context: ContextTypes.D
 
 async def Handle_Testflight_Reviews_Group(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
-    user_info = update.message.from_user.to_dict()
-    if update.message:
+    if update is not None or update.message is not None:
+        user_info = update.message.from_user.to_dict()
         message = update.message
         if message and message.text and (user_info['is_bot'] == False and user_info['first_name'] != 'Telegram'):
             member_user = user_info['first_name']
@@ -234,6 +234,6 @@ app.add_handler(MessageHandler(filters.TEXT & (~ filters.COMMAND) & CHOOSE_GROUP
 app.add_handler(CommandHandler(['help', 'start'], Start_Testflight_Reviews_Group, CHOOSE_GROUP_TESTFLIGHT_REVIEWS))
 
 # Testflight MyAdmin Groups
-app.add_handler(CommandHandler('report', Report_Testflight_Groups, CHOOSE_FILTER_SUPERGROUP))
+# app.add_handler(CommandHandler(['report', 'ban'], Report_Testflight_Groups, CHOOSE_FILTER_SUPERGROUP))
 
 app.run_polling()

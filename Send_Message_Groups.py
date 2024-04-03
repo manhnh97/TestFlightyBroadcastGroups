@@ -219,7 +219,7 @@ async def Report_Testflight_Groups(update: Update, context: ContextTypes.DEFAULT
         user_info = update.message.from_user.to_dict()
         if (user_info['is_bot'] == False and user_info['first_name'] != 'Telegram'):
             await update.message.reply_text(f"Thanks {user_info['first_name']}, \
-                                            \n\[URGENT] [manhjisme](tg://user?id=863875519)", parse_mode=ParseMode.MARKDOWN)
+                                            \nURGENT [manhjisme](tg://user?id=863875519)", parse_mode=ParseMode.MARKDOWN)
 
 
 async def RandomNumber_Testflight_Reviews_Group(update: Update, context: ContextTypes.DEFAULT_TYPE):

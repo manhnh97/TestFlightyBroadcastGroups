@@ -10,6 +10,7 @@ from telegram.constants import ParseMode
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 import httpx
 from httpx import ReadError, NetworkError
+from random import randint
 
 TOKEN_REMINDSLOW_ID = '6717549493:AAEzYjWPhL0IQFQ1rnKEvEJ89lf3sbvxRGc'
 DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1210607511024177202/MqV1JFSHYhawyL6TIbaAMiiDRlQCueE4Xt-NkRBD0cSaGDNePaS1aEb8LjhMIukwg2xx"
@@ -162,7 +163,7 @@ async def Handle_TestflightApps_Entities(update: Update, context: ContextTypes.D
 
 async def Start_Testflight_Mchat_Group(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
-    if update is not None or update.message is not None:
+    if update is not None and update.message is not None:
         member_user = update.message.from_user.to_dict()['first_name']
         await update.message.reply_text(f"Hi {member_user}, \
                     \n- Use (/help or /start) for help. \
@@ -214,11 +215,35 @@ async def Handle_Testflight_Reviews_Group(update: Update, context: ContextTypes.
 
 async def Report_Testflight_Groups(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
-    if update is not None or update.message is not None:
+    if update is not None and update.message is not None:
         user_info = update.message.from_user.to_dict()
         if (user_info['is_bot'] == False and user_info['first_name'] != 'Telegram'):
             await update.message.reply_text(f"Thanks {user_info['first_name']}, \
                                             \n\[URGENT] [manhjisme](tg://user?id=863875519)", parse_mode=ParseMode.MARKDOWN)
+
+
+async def RandomNumber_Testflight_Reviews_Group(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    
+    if update is not None and update.message is not None:
+        user_info = update.message.from_user.to_dict()
+        if (user_info['username'] == 'manhjisme'):
+            args = context.args[0]
+            match = re.match(r'(\d+),(\d+)', args)
+            lower_bound = int(match.group(1))
+            upper_bound = int(match.group(2))
+            try:
+                if lower_bound >= upper_bound:
+                    update.message.reply_text("Lower bound must be less than upper bound.")
+                    return
+                
+                random_num = randint(lower_bound, upper_bound)
+                await update.message.reply_text(f"Random number ({lower_bound}, {upper_bound}) return: *{random_num}*", parse_mode=ParseMode.MARKDOWN)
+                
+            except ValueError:
+                update.message.reply_text("Arguments must be integers.")
+                return
+
+
 
 app = ApplicationBuilder().token(TOKEN_REMINDSLOW_ID).build()
 # Testflight_Bot_Private
@@ -238,6 +263,7 @@ CHOOSE_GROUP_TESTFLIGHT_REVIEWS = CHOOSE_FILTER_SUPERGROUP & filters.Chat(chat_i
 app.add_handler(MessageHandler(filters.TEXT & (~ filters.COMMAND) & CHOOSE_GROUP_TESTFLIGHT_REVIEWS, Handle_Testflight_Reviews_Group))
 app.add_handler(CommandHandler(['help', 'start'], Start_Testflight_Reviews_Group, CHOOSE_GROUP_TESTFLIGHT_REVIEWS))
 
+app.add_handler(CommandHandler(['dice'], RandomNumber_Testflight_Reviews_Group, CHOOSE_GROUP_TESTFLIGHT_REVIEWS))
 # Testflight MyAdmin Groups
 CHOOSE_GROUP_TESTFLIGHT_M_REVIEWS = CHOOSE_FILTER_SUPERGROUP & filters.Chat(chat_id=[int(GROUP_TESTFLIGHT_REVIEWS_ID), int(GROUPS_TESTFLIGHT_M_CHAT), int(GROUP_TESTFLIGHT_1110_CHAT)])
 app.add_handler(CommandHandler(['report', 'ban'], Report_Testflight_Groups, CHOOSE_GROUP_TESTFLIGHT_M_REVIEWS))

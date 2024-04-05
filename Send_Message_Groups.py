@@ -226,7 +226,8 @@ async def RandomNumber_Testflight_Reviews_Group(update: Update, context: Context
     
     if update is not None and update.message is not None:
         user_info = update.message.from_user.to_dict()
-        if (user_info['username'] == 'manhjisme'):
+        print(user_info)
+        if (user_info['id'] == 863875519):
             args = context.args[0]
             match = re.match(r'(\d+),(\d+)', args)
             lower_bound = int(match.group(1))

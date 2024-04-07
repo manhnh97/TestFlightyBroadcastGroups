@@ -7,6 +7,7 @@ from requests.exceptions import ConnectTimeout
 from requests.adapters import HTTPAdapter
 from datetime import datetime
 from random import choice
+from winsound import Beep
 
 # Constants
 URL_PROXIES = "https://api.proxyscrape.com/v3/free-proxy-list/get?request=displayproxies&proxy_format=ipport&format=json"
@@ -122,3 +123,4 @@ if __name__ == "__main__":
     fetch_beta_apps_info(data_proxy)
     sort_and_update_results()
     update_testflight_list()
+    Beep(2000, 1000)

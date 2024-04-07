@@ -94,7 +94,7 @@ async def Start_Now(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     await context.bot.send_message(chat_id=update.effective_chat.id, \
             text="Hi people, \
-                \nWelcome to my group @testflightcampingapps. \
+                \nWelcome to my group @testflightm. \
                 \nThe bot support me post testflight apps soon. \
                 \nCan I help you? Contact me. Use /cc \"your message\", please. \
                 \nHave a great day!")
@@ -226,7 +226,6 @@ async def RandomNumber_Testflight_Reviews_Group(update: Update, context: Context
     
     if update is not None and update.message is not None:
         user_info = update.message.from_user.to_dict()
-        print(user_info)
         if (user_info['id'] == 863875519):
             args = context.args[0]
             match = re.match(r'(\d+),(\d+)', args)

@@ -59,7 +59,7 @@ def Search_Keywords(driver):
                     
                     list_available_testflight_links.add(f"{textname_between_tothe_and_beta}:::{link}")
                     
-            new_testflight_links.add(link)
+                new_testflight_links.add(link)
     
     list_newtestflight_apps.clear()
     if new_testflight_links:

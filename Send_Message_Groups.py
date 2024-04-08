@@ -31,10 +31,12 @@ GROUP_TESTFLIGHT_1110_ID = '-1002112742740'
 # Testflight_Mesasge
 THREAD_CONTACT_M = '11'
 GROUP_TESTFLIGHT_CONTACT_M = '-1002031575789'
-
 # Testflight_Reviews
 GROUP_TESTFLIGHT_REVIEWS_ID = '-1001170452834'
 GROUPS_TESTFLIGHT_X_ID = '-1001363951322'
+# Testflight_ShareApps
+GROUP_TESTFLIGHT_SHAREAPPS_ID = '-1001962140212'
+
 
 post_by_personal = [863875519, 6325914189, 6775616554, 6168275376]
 CHOOSE_FILTER_PRIVATE = filters.ChatType.PRIVATE
@@ -78,6 +80,7 @@ async def Send_Message_Groups(hashtag, url):
             Send_Message_Telegram(session, GROUP_TESTFLIGHT_NGHIEN_ID, f"{hashtag}\n\n{url}"),
             Send_Message_Telegram(session, GROUP_TESTFLIGHT_1110_ID, f"{hashtag}\n\n{url}"),
             Send_Message_Telegram(session, GROUPS_TESTFLIGHT_X_ID, f"{hashtag}\n\n{url}"),
+            Send_Message_Telegram(session, GROUP_TESTFLIGHT_SHAREAPPS_ID, f"{hashtag}\n\n{url}"),
             Send_Message_Telegram(session, GROUP_TESTFLIGHT_KGM_ID, f"{hashtag}\n\n{url}"),
             Send_Message_Discord(session, f"{hashtag}\n\n{url}"),
         ]

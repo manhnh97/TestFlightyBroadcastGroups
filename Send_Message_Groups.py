@@ -209,7 +209,7 @@ async def Handle_Testflight_Reviews_Group(update: Update, context: ContextTypes.
         message = update.message
         if message and message.text and (user_info['is_bot'] == False and user_info['first_name'] != 'Telegram'):
             member_user = user_info['first_name']
-            if re.search(r'ree?dee?m|code', (message.text).lower()):
+            if re.search(r'(ree?dee?m\s?)code', (message.text).lower()):
                 await update.message.reply_text(f"Hi {member_user}, \
                                                 \nWe have not Redeem Code, use only Testflight Links. \
                                                 \nPlease read: [Redeem Code](https://t.me/testflightR/70210" \
@@ -255,6 +255,7 @@ app.add_handler(CommandHandler('cc', Contact_M, CHOOSE_FILTER_PRIVATE))
 
 app.add_handler(MessageHandler(Members_Bot & filters.Regex(PATTERN_TESTFLIGHT_fulllink), Handle_TestflightApps_Private))
 app.add_handler(MessageHandler(Members_Bot & (filters.Entity("url") | filters.Entity("text_link")), Handle_TestflightApps_Entities))
+# app.add_handler(MessageHandler(filters.TEXT & (~ filters.COMMAND) & CHOOSE_FILTER_PRIVATE, Handle_Testflight_Reviews_Group))
 
 # TestflightM Chat group
 CHOOSE_GROUP_TESTFLIGHT_M = CHOOSE_FILTER_SUPERGROUP & filters.Chat(chat_id=int(GROUPS_TESTFLIGHT_M_CHAT))

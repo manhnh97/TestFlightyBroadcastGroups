@@ -38,7 +38,7 @@ GROUPS_TESTFLIGHT_X_ID = '-1001363951322'
 GROUP_TESTFLIGHT_SHAREAPPS_ID = '-1001962140212'
 
 
-post_by_personal = [863875519, 6325914189, 6775616554, 6168275376]
+post_by_personal = [863875519, 6325914189]
 CHOOSE_FILTER_PRIVATE = filters.ChatType.PRIVATE
 CHOOSE_FILTER_SUPERGROUP = filters.ChatType.SUPERGROUP
 Members_Bot = CHOOSE_FILTER_PRIVATE & filters.TEXT & filters.Chat(post_by_personal)
@@ -183,7 +183,7 @@ async def Handle_Testflight_Mchat_Group(update: Update, context: ContextTypes.DE
             message = update.message
             if message and message.text and (user_info['is_bot'] == False and user_info['first_name'] != 'Telegram'):
                 member_user = user_info['first_name']
-                if re.search(r'ree?dee?m|code', (message.text).lower()):
+                if re.search(r'ree?dee?m|code?', (message.text).lower()):
                     await update.message.reply_text(f"Hi {member_user}, \
                                                     \nWe have not Redeem Code, use only Testflight Links." \
                                                     , parse_mode=ParseMode.MARKDOWN)

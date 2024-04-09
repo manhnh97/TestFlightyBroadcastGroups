@@ -38,7 +38,7 @@ GROUPS_TESTFLIGHT_X_ID = '-1001363951322'
 GROUP_TESTFLIGHT_SHAREAPPS_ID = '-1001962140212'
 
 
-post_by_personal = [863875519, 6325914189]
+post_by_personal = [863875519, 6325914189, 6168275376]
 CHOOSE_FILTER_PRIVATE = filters.ChatType.PRIVATE
 CHOOSE_FILTER_SUPERGROUP = filters.ChatType.SUPERGROUP
 Members_Bot = CHOOSE_FILTER_PRIVATE & filters.TEXT & filters.Chat(post_by_personal)
@@ -137,9 +137,16 @@ async def Handle_Entity_Links(url):
             hashtag = " ".join(["#" + hashtag.upper() for hashtag in hashtags])
             await Send_Message_Groups(hashtag, url)
             
-    except (requests.RequestException, IndexError) as e:
+    except (IndexError) as e:
         print("Error: Handle Entity Links:", e)
-
+    except (requests.RequestException) as e:
+        parameter = {
+        "chat_id": GROUP_TESTFLIGHT_CONTACT_M,
+        "message_thread_id": THREAD_CONTACT_M,
+        "text": f"Error: Handle Entity Links:\n{e}"
+        }
+        requests.post(BASE_URL_REDMINDSLOW, data=parameter)
+        
 
 async def Handle_TestflightApps_Private(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
@@ -153,8 +160,8 @@ async def Handle_TestflightApps_Private(update: Update, context: ContextTypes.DE
         elif re.search(PATTERN_TESTFLIGHT_fulllink, testflight_link) and len(testflight_link) > 0:
             
             urls = re.findall(PATTERN_TESTFLIGHT_fulllink, testflight_link)
-            for url in urls:
-                await Handle_Entity_Links(url)
+            # for url in urls:
+            await Handle_Entity_Links(urls)
 
 
 async def Handle_TestflightApps_Entities(update: Update, context: ContextTypes.DEFAULT_TYPE):

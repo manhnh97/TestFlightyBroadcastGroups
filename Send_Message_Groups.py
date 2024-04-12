@@ -160,8 +160,8 @@ async def Handle_TestflightApps_Private(update: Update, context: ContextTypes.DE
         elif re.search(PATTERN_TESTFLIGHT_fulllink, testflight_link) and len(testflight_link) > 0:
             
             urls = re.findall(PATTERN_TESTFLIGHT_fulllink, testflight_link)
-            # for url in urls:
-            await Handle_Entity_Links(urls)
+            for url in urls:
+                await Handle_Entity_Links(url)
 
 
 async def Handle_TestflightApps_Entities(update: Update, context: ContextTypes.DEFAULT_TYPE):

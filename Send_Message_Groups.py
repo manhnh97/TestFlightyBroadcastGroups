@@ -8,8 +8,6 @@ from telegram import Update
 from fake_useragent import UserAgent
 from telegram.constants import ParseMode
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
-import httpx
-from httpx import ReadError, NetworkError
 from random import randint
 
 TOKEN_REMINDSLOW_ID = '6717549493:AAEzYjWPhL0IQFQ1rnKEvEJ89lf3sbvxRGc'
@@ -68,12 +66,16 @@ async def Send_Message_Telegram(session, chat_id, text, message_thread_id=None):
     async with session.post(BASE_URL_REDMINDSLOW, data=parameter) as response:
         pass
 
+
 async def Send_Message_Discord(session, text):
+    
     parameter = {"content": text}
     async with session.post(DISCORD_WEBHOOK_URL, json=parameter):
         pass
 
+
 async def Send_Message_Groups(hashtag, url):
+
     async with aiohttp.ClientSession() as session:
         tasks = [
             Send_Message_Telegram(session, GROUPS_TESTFLIGHT_M_DASHBOARD, f"{hashtag}\n\n{url}"),
@@ -88,10 +90,12 @@ async def Send_Message_Groups(hashtag, url):
 
 
 async def Send_Message_OnlyGroup(hashtag, url):
+    
     tasks = [
         Send_Message_Telegram(GROUPS_TESTFLIGHT_M_DASHBOARD, f"{hashtag}\n\n{url}"),
     ]
     await asyncio.gather(*tasks)
+
 
 async def Start_Now(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
@@ -152,13 +156,11 @@ async def Handle_TestflightApps_Private(update: Update, context: ContextTypes.DE
     
     if update.message and update.message.text:
         testflight_link = update.message.text
-        if '#' in testflight_link and len(testflight_link) > 0:
-            
+        if '#' in testflight_link and len(testflight_link) < 2:
             url = re.search(PATTERN_TESTFLIGHT_fulllink, testflight_link).group(0)
             await Handle_Entity_Links(url)
             
         elif re.search(PATTERN_TESTFLIGHT_fulllink, testflight_link) and len(testflight_link) > 0:
-            
             urls = re.findall(PATTERN_TESTFLIGHT_fulllink, testflight_link)
             for url in urls:
                 await Handle_Entity_Links(url)
@@ -181,6 +183,7 @@ async def Start_Testflight_Mchat_Group(update: Update, context: ContextTypes.DEF
                     \n1. How to search apps? [On PC](https://t.me/testflightm/1015) | [On Phone](https://t.me/testflightR/71287). \
                     \n2. How to.post Redeem Code? [Read more...](https://t.me/testflightR/70210). \
                     \n- Updating...", parse_mode=ParseMode.MARKDOWN)
+
 
 async def Handle_Testflight_Mchat_Group(update: Update, context: ContextTypes.DEFAULT_TYPE):
     

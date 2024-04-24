@@ -1,13 +1,13 @@
-from time import sleep
-from bs4 import BeautifulSoup as bs
-import requests
 import re
-from fake_useragent import UserAgent
-from requests.exceptions import ConnectTimeout
-from requests.adapters import HTTPAdapter
-from datetime import datetime
+import requests
+from lxml import html
+from time import sleep
 from random import choice
 from winsound import Beep
+from datetime import datetime
+from fake_useragent import UserAgent
+from requests.adapters import HTTPAdapter
+from requests.exceptions import ConnectTimeout
 
 # Constants
 URL_PROXIES = "https://api.proxyscrape.com/v3/free-proxy-list/get?request=displayproxies&proxy_format=ipport&format=json"
@@ -17,6 +17,10 @@ TXT_RESULT_FULL_BETA_APPS =         "Result_Testflight_Full_BetaApps.md"
 TXT_RESULT_NEWTESTERS_BETA_APPS =   "Result_Testflight_NewTesters_BetaApps.md"
 TXT_RESULT_ERROR_BETA_APPS =        "Result_Testflight_Error_BetaApps.md"
 MAX_RETRIES = 5
+
+XPATH_STATUS = '//*[@class="beta-status"]/span/text()'
+XPATH_TITLE = '/html/head/title/text()'
+TITLE_REGEX = r'Join the (.+) beta - TestFlight - Apple'
 
 
 def ListProxies():
@@ -48,7 +52,6 @@ def fetch_beta_apps_info(data_proxy):
         protocol, proxy = choice(data_proxy)
     
         pattern_Available = r'To join the\s(.*?)\sbeta'
-        pattern_Full = r'Join the\s(.*?)\sbeta'
         try:
             while urls:
                 url_testflight = urls.pop(0).strip()
@@ -67,23 +70,20 @@ def fetch_beta_apps_info(data_proxy):
                     sleep(retry_after)
                     continue
                 if r.status_code == 200:
-                    soup_text = bs(r.text, 'html.parser')
-                    beta_status_element = soup_text.find(class_='beta-status')
-                    first_span = beta_status_element.find('span')
-                    span_text = first_span.get_text(strip=True)
-                    text_matches = re.search(pattern_Available, span_text, re.IGNORECASE)
+                    page = html.fromstring(r.text)
+                    
+                    testflight_status = page.xpath(XPATH_STATUS)[0]
+                    text_matches = re.search(pattern_Available, testflight_status, re.IGNORECASE)
                     if text_matches:
                         textname_between_tothe_and_beta = text_matches.group(1).strip()
-                        name = ''.join(textname_between_tothe_and_beta).replace('|', '-')
-                        hashtags = re.findall(r"\b\w+\b", name)
-                        hashtag = " ".join(["#" + hashtag.upper() for hashtag in hashtags])
-                        txt_result_available_testflight_file.write(f"| **{name.strip()}** | {hashtag}<br />{url_testflight} |\n")
-                    elif "This beta is full." == span_text:
-                        title_text = soup_text.find('title').getText()
-                        text_matches = re.search(pattern_Full, title_text, re.IGNORECASE)
-                        textname_between_join_and_beta = text_matches.group(1).strip()
-                        txt_result_full_testflight_file.write(f"{textname_between_join_and_beta} => {url_testflight}\n")
-                    elif "accepting any new testers" in span_text:
+                        name = ''.join(textname_between_tothe_and_beta).replace('|', '-').strip()
+                        txt_result_available_testflight_file.write(f"| **{name}** | {name}<br />{url_testflight} |\n")
+                    elif testflight_status == "This beta is full.":
+                        title = re.findall(
+                                TITLE_REGEX,
+                                page.xpath(XPATH_TITLE)[0])[0]
+                        txt_result_full_testflight_file.write(f"{title} => {url_testflight}\n")
+                    else:
                         txt_result_newtesters_testflight_file.write(f"{url_testflight}\n")
                 else:
                     txt_result_error_link_testflight_file.write(f"{url_testflight}\n")

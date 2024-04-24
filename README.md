@@ -1,4 +1,8 @@
 # Testflight_SendGroups
 
 ###Install libraries
-pip install python-telegram-bot fake-useragent lxml requests
+```cmd
+.\venv\Scripts\activate.bat
+pip install gspread requests lxml selenium fake_useragent aiohttp python-telegram-bot
+```
+

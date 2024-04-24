@@ -6,23 +6,26 @@ import warnings
 from lxml import html
 from telegram import Update
 from fake_useragent import UserAgent
-from telegram.constants import ParseMode
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
+# from telegram.constants import ParseMode
 # from random import randint
 
 TOKEN_REMINDSLOW_ID = '6717549493:AAEzYjWPhL0IQFQ1rnKEvEJ89lf3sbvxRGc'
-DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1210607511024177202/MqV1JFSHYhawyL6TIbaAMiiDRlQCueE4Xt-NkRBD0cSaGDNePaS1aEb8LjhMIukwg2xx"
 BASE_URL_REDMINDSLOW = f"https://api.telegram.org/bot{TOKEN_REMINDSLOW_ID}/sendMessage"
+DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1210607511024177202/MqV1JFSHYhawyL6TIbaAMiiDRlQCueE4Xt-NkRBD0cSaGDNePaS1aEb8LjhMIukwg2xx"
 
 # Nghien
 THREAD_NGHIEN_ID = '235212'
 GROUP_TESTFLIGHT_NGHIEN_ID = '-1001236644871'
-# Testflight1110chat
-GROUP_TESTFLIGHT_1110_CHAT = '-1002077327541'
+# Testflight1110
 GROUP_TESTFLIGHT_1110_ID = '-1002112742740'
+GROUP_TESTFLIGHT_1110_CHAT = '-1002077327541'
 # Testflight1110chat
 THREAD_HAHIOS_ID = '1742'
 GROUP_TESTFLIGHT_HAHIOS_ID = '-1001590452930'
+# TestFlightM
+GROUP_TESTFLIGHT_M_ID = '-1002102840497'
+GROUP_TESTFLIGHT_M_CHAT = '-1002047515328'
 # Testflight_Mesasge
 THREAD_CONTACT_M = '11'
 GROUP_TESTFLIGHT_CONTACT_M = '-1002031575789'
@@ -69,6 +72,7 @@ async def Send_Message_Groups(hashtag, url):
 
     async with aiohttp.ClientSession() as session:
         tasks = [
+            Send_Message_Telegram(session, GROUP_TESTFLIGHT_M_ID, f"{hashtag}\n\n{url}"),
             Send_Message_Telegram(session, GROUP_TESTFLIGHT_NGHIEN_ID, f"{hashtag}\n\n{url}"),
             Send_Message_Telegram(session, GROUP_TESTFLIGHT_1110_ID, f"{hashtag}\n\n{url}"),
             Send_Message_Telegram(session, GROUP_TESTFLIGHT_HAHIOS_ID, f"{hashtag}\n\n{url}"),

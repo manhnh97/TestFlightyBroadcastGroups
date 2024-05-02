@@ -20,9 +20,14 @@ GROUP_TESTFLIGHT_NGHIEN_ID = '-1001236644871'
 # Testflight1110
 GROUP_TESTFLIGHT_1110_ID = '-1002112742740'
 GROUP_TESTFLIGHT_1110_CHAT = '-1002077327541'
+# JumpxGroup
+GROUP_TESTFLIGHT_JUMPX_ID = '-1002089043136'
 # Testflight1110chat
 THREAD_HAHIOS_ID = '1742'
 GROUP_TESTFLIGHT_HAHIOS_ID = '-1001590452930'
+# Khong Gian Mang
+THREAD_KGM_ID = '32'
+GROUP_TESTFLIGHT_KGM_ID = '-1001823403288'
 # TestFlightM
 GROUP_TESTFLIGHT_M_ID = '-1002102840497'
 GROUP_TESTFLIGHT_M_CHAT = '-1002047515328'
@@ -56,6 +61,8 @@ async def Send_Message_Telegram(session, chat_id, text, message_thread_id=None):
         parameter["message_thread_id"] = THREAD_NGHIEN_ID
     elif parameter["chat_id"] is GROUP_TESTFLIGHT_HAHIOS_ID:
         parameter["message_thread_id"] = THREAD_HAHIOS_ID
+    elif parameter["chat_id"] is GROUP_TESTFLIGHT_KGM_ID:
+        parameter["message_thread_id"] = THREAD_KGM_ID
     
     async with session.post(BASE_URL_REDMINDSLOW, data=parameter) as response:
         pass
@@ -76,6 +83,8 @@ async def Send_Message_Groups(hashtag, url):
             Send_Message_Telegram(session, GROUP_TESTFLIGHT_NGHIEN_ID, f"{hashtag}\n\n{url}"),
             Send_Message_Telegram(session, GROUP_TESTFLIGHT_1110_ID, f"{hashtag}\n\n{url}"),
             Send_Message_Telegram(session, GROUP_TESTFLIGHT_HAHIOS_ID, f"{hashtag}\n\n{url}"),
+            Send_Message_Telegram(session, GROUP_TESTFLIGHT_JUMPX_ID, f"{hashtag}\n\n{url}"),
+            Send_Message_Telegram(session, GROUP_TESTFLIGHT_KGM_ID, f"{hashtag}\n\n{url}"),
             Send_Message_Discord(session, f"{hashtag}\n\n{url}")
         ]
         await asyncio.gather(*tasks)

@@ -8,18 +8,19 @@ from telegram import Update
 from fake_useragent import UserAgent
 from telegram.constants import ParseMode
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
-# from random import randint
+from random import randint
 
 TOKEN_TESTFLIGHT_CAMPINGLINKS_ID = '6997135775:AAF2dh5ZP3eY_z11_-mlGhto590MeAdCPzE'
 BASE_URL_TESTFLIGHT_CAMPINGLINKS = f"https://api.telegram.org/bot{TOKEN_TESTFLIGHT_CAMPINGLINKS_ID}/sendMessage"
 
 # TestFlight Reviews
 THREAD_EN_ID = ''
-THREAD_VI_ID = '142053'
-THREAD_CN_ID = '142066'
+# THREAD_VI_ID = '142053'
+# THREAD_CN_ID = '142066'
 GROUP_TESTFLIGHT_REVIEWS_ID = '-1001170452834'
+GROUP_TESTFLIGHT_TESTFLIGHTX_ID = '-1001410162995'
 #TestFlightX
-GROUP_TESTFLIGHT_X_ID = '-1001363951322'
+CHANNEL_TESTFLIGHT_X_ID = '-1001363951322'
 # Testflight_Mesasge
 THREAD_CONTACT_M = '11'
 GROUP_TESTFLIGHT_CONTACT_M = '-1002031575789'
@@ -57,10 +58,11 @@ async def Send_Message_Telegram(session, chat_id, text, message_thread_ids=None)
 
 async def Send_Message_Groups(hashtag, url):
     async with aiohttp.ClientSession() as session:
-        message_thread_ids = [THREAD_VI_ID, THREAD_CN_ID, THREAD_EN_ID]
+        # message_thread_ids = [THREAD_VI_ID, THREAD_CN_ID, THREAD_EN_ID, THREAD_RU_ID]
+        message_thread_ids = THREAD_EN_ID
 
         tasks = [
-            Send_Message_Telegram(session, GROUP_TESTFLIGHT_X_ID, f"{hashtag}\n\n{url}"),
+            Send_Message_Telegram(session, CHANNEL_TESTFLIGHT_X_ID, f"{hashtag}\n\n{url}"),
             Send_Message_Telegram(session, GROUP_TESTFLIGHT_REVIEWS_ID, f"{hashtag}\n\n{url}", message_thread_ids),
         ]
         await asyncio.gather(*tasks)
@@ -138,42 +140,27 @@ async def Handle_TestflightApps_Entities(update: Update, context: ContextTypes.D
         if re.search(PATTERN_TESTFLIGHT_fulllink, entity.url) and len(entity.url) > 0:
             testflight_link = entity.url
             await Handle_Entity_Links(testflight_link)
-
-# async def Start_Testflight_Mchat_Group(update: Update, context: ContextTypes.DEFAULT_TYPE):
+            
+async def RandomNumber_Testflight_Reviews_Group(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
-#     if update is not None and update.message is not None:
-#         member_user = update.message.from_user.to_dict()['first_name']
-#         await update.message.reply_text(f"Hi {member_user}, \
-#                     \n- Use (/help or /start) for help. \
-#                     \n- What is TestFlight? [From NghienMac with love](https://nghienmac.nghienplus.net/1001-cau-hoi-ve-testflight). \
-#                     \n1. How to search apps? [On PC](https://t.me/testflightm/1015) | [On Phone](https://t.me/testflightR/71287). \
-#                     \n2. How to.post Redeem Code? [Read more...](https://t.me/testflightR/70210). \
-#                     \n- Updating...", parse_mode=ParseMode.MARKDOWN)
-
-
-# async def Handle_Testflight_Mchat_Group(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    
-#     if update is not None and update.message is not None:
-#         user_info = update.message.from_user.to_dict()
-#         if update.message:
-#             message = update.message
-#             if message and message.text and (user_info['is_bot'] == False and user_info['first_name'] != 'Telegram'):
-#                 member_user = user_info['first_name']
-#                 if re.search(r'ree?dee?m|code?', (message.text).lower()):
-#                     await update.message.reply_text(f"Hi {member_user}, \
-#                                                     \nWe have not Redeem Code, use only Testflight Links." \
-#                                                     , parse_mode=ParseMode.MARKDOWN)
-#                                                 # \nPlease read: [Redeem Code](https://t.me/testflightR/70210)"
-
-
-# async def Report_Testflight_Groups(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    
-#     if update is not None and update.message is not None:
-#         user_info = update.message.from_user.to_dict()
-#         if (user_info['is_bot'] == False and user_info['first_name'] != 'Telegram'):
-#             await update.message.reply_text(f"Thanks {user_info['first_name']}, \
-#                                             \nURGENT [manhjisme](tg://user?id=863875519)", parse_mode=ParseMode.MARKDOWN)
-
+    if update is not None and update.message is not None:
+        user_info = update.message.from_user.to_dict()
+        if (user_info['id'] == 863875519):
+            args = context.args[0]
+            match = re.match(r'(\d+),(\d+)', args)
+            lower_bound = int(match.group(1))
+            upper_bound = int(match.group(2))
+            try:
+                if lower_bound >= upper_bound:
+                    update.message.reply_text("Lower bound must be less than upper bound.")
+                    return
+                
+                random_num = randint(lower_bound, upper_bound)
+                await update.message.reply_text(f"Random number ({lower_bound}, {upper_bound}) return: *{random_num}*", parse_mode=ParseMode.MARKDOWN)
+                
+            except ValueError:
+                update.message.reply_text("Arguments must be integers.")
+                return
 
 app = ApplicationBuilder().token(TOKEN_TESTFLIGHT_CAMPINGLINKS_ID).build()
 # Testflight_Bot_Private
@@ -184,14 +171,6 @@ app.add_handler(MessageHandler(Members_Bot & filters.Regex(PATTERN_TESTFLIGHT_fu
 app.add_handler(MessageHandler(Members_Bot & (filters.Entity("url") | filters.Entity("text_link")), Handle_TestflightApps_Entities))
 
 app.run_polling()
-# app.add_handler(MessageHandler(filters.TEXT & (~ filters.COMMAND) & CHOOSE_FILTER_PRIVATE, Handle_Testflight_Reviews_Group))
 
-# TestflightM Chat group
-# CHOOSE_GROUP_TESTFLIGHT_M = CHOOSE_FILTER_SUPERGROUP & filters.Chat(chat_id=int(GROUPS_TESTFLIGHT_M_CHAT))
-# app.add_handler(MessageHandler(filters.TEXT & (~ filters.COMMAND) & CHOOSE_GROUP_TESTFLIGHT_M, Handle_Testflight_Mchat_Group))
-# app.add_handler(CommandHandler(['help', 'start'], Start_Testflight_Mchat_Group, CHOOSE_GROUP_TESTFLIGHT_M))
-
-
-# Testflight MyAdmin Groups
-# CHOOSE_GROUP_TESTFLIGHT_M_REVIEWS = CHOOSE_FILTER_SUPERGROUP & filters.Chat(int(GROUPS_TESTFLIGHT_M_CHAT))
-# app.add_handler(CommandHandler(['report', 'ban'], Report_Testflight_Groups, CHOOSE_GROUP_TESTFLIGHT_M_REVIEWS))
+CHOOSE_GROUP_TESTFLIGHT_REVIEWS = CHOOSE_FILTER_SUPERGROUP & filters.Chat(chat_id=int(GROUP_TESTFLIGHT_TESTFLIGHTX_ID))
+app.add_handler(CommandHandler(['dice'], RandomNumber_Testflight_Reviews_Group, CHOOSE_GROUP_TESTFLIGHT_REVIEWS))

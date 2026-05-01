@@ -1,0 +1,16 @@
+{
+  "name": "testflight-bots",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "tail": "wrangler tail",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260501.1",
+    "typescript": "^5.5.0",
+    "wrangler": "^4.87.0"
+  }
+}

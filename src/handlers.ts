@@ -1,6 +1,6 @@
 import type { BotConfig } from './config';
 import type { BotStateDO } from './durable-objects';
-import { sendMessage, sendDiscord } from './telegram';
+import { sendMessage, sendDiscord, getChat } from './telegram';
 import {
   extractTestFlightLinks,
   fetchAppName,
@@ -17,8 +17,6 @@ type TGMessage = {
   chat: { id: number; type: string; title?: string };
   text?: string;
   entities?: TGEntity[];
-  message_thread_id?: number;
-  is_topic_message?: boolean;
 };
 export type TGUpdate = { update_id: number; message?: TGMessage };
 
@@ -37,22 +35,13 @@ export async function handleUpdate(
   const text = msg.text ?? '';
   const isAdmin = bot.admins.includes(msg.from.id);
 
-  // /id works anywhere (admin only) so you can discover chat_id / thread_id
-  // by sending /id inside the target group or topic.
-  if (text.startsWith('/')) {
-    const head = text.split(/\s+/)[0].toLowerCase().split('@')[0];
-    if (head === '/id') {
-      if (isAdmin) await replyChatInfo(msg, token);
-      return;
-    }
-  }
+  if (!isPrivate) return;
 
-  if (isPrivate && text.startsWith('/')) {
+  if (text.startsWith('/')) {
     await handleCommand(msg, bot, token, state);
     return;
   }
 
-  if (!isPrivate) return;
   if (!isAdmin) return;
 
   const urls = collectTestFlightUrls(msg);
@@ -60,32 +49,6 @@ export async function handleUpdate(
   for (const url of urls) {
     await broadcast(url, bot, token, state, msg.chat.id.toString(), sharedBy);
   }
-}
-
-async function replyChatInfo(msg: TGMessage, token: string): Promise<void> {
-  const chatId = msg.chat.id.toString();
-  const threadId = msg.is_topic_message ? msg.message_thread_id : undefined;
-  const title = msg.chat.title ?? msg.chat.type;
-  const suggestedName = (msg.chat.title ?? 'Group').replace(/\|/g, '_');
-  const addLine =
-    threadId !== undefined
-      ? `/addgroup ${suggestedName}|${chatId}|${threadId}`
-      : `/addgroup ${suggestedName}|${chatId}`;
-
-  const lines = [
-    `chat: ${title} (${msg.chat.type})`,
-    `chat_id: \`${chatId}\``,
-  ];
-  if (threadId !== undefined) lines.push(`thread_id: \`${threadId}\``);
-  lines.push('', `\`${addLine}\``);
-
-  await sendMessage(token, {
-    chat_id: chatId,
-    message_thread_id: threadId,
-    text: lines.join('\n'),
-    parse_mode: 'Markdown',
-    reply_parameters: { message_id: msg.message_id },
-  });
 }
 
 function collectTestFlightUrls(msg: TGMessage): string[] {
@@ -121,6 +84,11 @@ async function handleCommand(
 
     case '/cc':
       await handleContact(msg, bot, token, argTail(text));
+      return;
+
+    case '/id':
+      if (!isAdmin) return;
+      await handleId(token, chatId, argTail(text));
       return;
 
     case '/groups':
@@ -204,7 +172,7 @@ function helpText(isAdmin: boolean): string {
   return (
     base +
     '\nadmin:\n' +
-    '/id — show chat_id / thread_id of the current chat (works in any chat)\n' +
+    '/id [@username] — your own chat_id, or look up a public group/channel by username\n' +
     '/groups — list configured target groups\n' +
     '/addgroup name|chat_id|thread_id? — add a group\n' +
     '/rmgroup chat_id — remove a group\n' +
@@ -216,6 +184,47 @@ function helpText(isAdmin: boolean): string {
 function argTail(text: string): string {
   const idx = text.indexOf(' ');
   return idx === -1 ? '' : text.slice(idx + 1).trim();
+}
+
+async function handleId(token: string, chatId: string, arg: string): Promise<void> {
+  // No arg: report the caller's own chat_id (their Telegram user id, since
+  // this is a private chat).
+  if (!arg) {
+    await sendMessage(token, {
+      chat_id: chatId,
+      text: `your chat_id: \`${chatId}\`\n\nusage: \`/id @username\` to look up a public group / channel`,
+      parse_mode: 'Markdown',
+    });
+    return;
+  }
+
+  const ref = arg.startsWith('@') ? arg : '@' + arg;
+  const chat = await getChat(token, ref);
+  if (!chat) {
+    await sendMessage(token, {
+      chat_id: chatId,
+      text: `not found, or the bot can't access \`${ref}\`. it must be public, or the bot must be a member.`,
+      parse_mode: 'Markdown',
+    });
+    return;
+  }
+
+  const title = chat.title ?? chat.username ?? '(unknown)';
+  const suggestedName = (chat.title ?? chat.username ?? 'Group').replace(/\|/g, '_');
+  const addLine = `/addgroup ${suggestedName}|${chat.id}`;
+
+  await sendMessage(token, {
+    chat_id: chatId,
+    text: [
+      `chat: ${title} (${chat.type})`,
+      `chat_id: \`${chat.id}\``,
+      '',
+      `\`${addLine}\``,
+      '',
+      '_Note: thread_id (for forum topics) cannot be looked up by username — append it manually if needed._',
+    ].join('\n'),
+    parse_mode: 'Markdown',
+  });
 }
 
 async function handleContact(

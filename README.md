@@ -43,7 +43,7 @@ The second call should show your worker URL in `"url"` and an empty `"last_error
 |---|---|---|
 | `/start`, `/help` | anyone | usage hint |
 | `/cc <message>` | anyone | forwards a message to the contact group |
-| `/id` | admins | reply with `chat_id` / `thread_id` of the current chat (works in any chat) |
+| `/id [@username]` | admins, private chat | no arg → your own `chat_id`; with `@username` → look up a public group/channel via Telegram's `getChat` |
 | `/groups` | admins | list current target groups (from DO) |
 | `/addgroup name\|chat_id\|thread_id?` | admins | add or update a group |
 | `/rmgroup chat_id` | admins | remove a group |

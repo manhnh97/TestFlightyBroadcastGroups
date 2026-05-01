@@ -13,9 +13,11 @@ export type Contact = {
 };
 
 export type BotConfig = {
-  // Telegram user ids allowed to broadcast & manage groups.
+  // Initial Telegram user ids allowed to broadcast & manage the bot. Written
+  // to the DO ONLY if the DO has no admin list yet. After first run, manage
+  // admins via /addadmin and /rmadmin — edits to this array are ignored.
   // To find your id, message @userinfobot on Telegram.
-  admins: number[];
+  seedAdmins: number[];
 
   // /cc forwarding target (also used for error reports). Optional.
   contact?: Contact;
@@ -39,7 +41,7 @@ export type BotConfig = {
 export const DEFAULT_DAILY_LIMIT = 200;
 
 export const BOT: BotConfig = {
-  admins: [863875519, 6325914189],
+  seedAdmins: [863875519, 6325914189],
   contact: { chat_id: '-1002031575789', thread_id: 11 },
   discordWebhook:
     'https://discord.com/api/webhooks/1210607511024177202/MqV1JFSHYhawyL6TIbaAMiiDRlQCueE4Xt-NkRBD0cSaGDNePaS1aEb8LjhMIukwg2xx',

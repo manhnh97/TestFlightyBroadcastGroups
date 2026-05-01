@@ -4,6 +4,7 @@ import { DEFAULT_DAILY_LIMIT } from './config';
 import { todayVN } from './time';
 
 const GROUPS_KEY = 'groups';
+const ADMINS_KEY = 'admins';
 const LIMIT_KEY = 'limit';
 const QUOTA_KEY = 'quota';
 
@@ -62,6 +63,38 @@ export class BotStateDO extends DurableObject {
     if (filtered.length === lines.length) return false;
     await this.ctx.storage.put(GROUPS_KEY, filtered);
     return true;
+  }
+
+  // ---- admins ----------------------------------------------------------
+
+  async ensureSeededAdmins(seed: number[]): Promise<void> {
+    if (!seed?.length) return;
+    const existing = await this.ctx.storage.get<number[]>(ADMINS_KEY);
+    if (existing !== undefined) return;
+    await this.ctx.storage.put(ADMINS_KEY, [...new Set(seed)]);
+  }
+
+  async listAdmins(): Promise<number[]> {
+    return (await this.ctx.storage.get<number[]>(ADMINS_KEY)) ?? [];
+  }
+
+  async addAdmin(userId: number): Promise<{ ok: boolean; reason?: string }> {
+    if (!Number.isFinite(userId) || userId <= 0) {
+      return { ok: false, reason: 'invalid user id' };
+    }
+    const list = await this.listAdmins();
+    if (list.includes(userId)) return { ok: false, reason: 'already an admin' };
+    list.push(userId);
+    await this.ctx.storage.put(ADMINS_KEY, list);
+    return { ok: true };
+  }
+
+  async removeAdmin(userId: number): Promise<{ ok: boolean; reason?: string }> {
+    const list = await this.listAdmins();
+    if (!list.includes(userId)) return { ok: false, reason: 'not an admin' };
+    if (list.length <= 1) return { ok: false, reason: 'cannot remove the last admin' };
+    await this.ctx.storage.put(ADMINS_KEY, list.filter((id) => id !== userId));
+    return { ok: true };
   }
 
   // ---- daily quota -----------------------------------------------------

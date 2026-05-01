@@ -33,12 +33,14 @@ export async function handleUpdate(
 
   const isPrivate = msg.chat.type === 'private';
   const text = msg.text ?? '';
-  const isAdmin = bot.admins.includes(msg.from.id);
 
   if (!isPrivate) return;
 
+  const admins = await state.listAdmins();
+  const isAdmin = admins.includes(msg.from.id);
+
   if (text.startsWith('/')) {
-    await handleCommand(msg, bot, token, state);
+    await handleCommand(msg, bot, token, state, isAdmin);
     return;
   }
 
@@ -69,12 +71,11 @@ async function handleCommand(
   bot: BotConfig,
   token: string,
   state: State,
+  isAdmin: boolean,
 ): Promise<void> {
   const text = msg.text!;
   const cmd = text.split(/\s+/)[0].toLowerCase().split('@')[0];
   const chatId = msg.chat.id.toString();
-  const user = msg.from!;
-  const isAdmin = bot.admins.includes(user.id);
 
   switch (cmd) {
     case '/start':
@@ -161,6 +162,47 @@ async function handleCommand(
       await sendMessage(token, { chat_id: chatId, text: `daily limit set to ${n}` });
       return;
     }
+
+    case '/admins': {
+      if (!isAdmin) return;
+      const list = await state.listAdmins();
+      const text =
+        list.length === 0
+          ? 'no admins configured'
+          : `admins (${list.length}):\n` + list.map((id) => `• ${id}`).join('\n');
+      await sendMessage(token, { chat_id: chatId, text });
+      return;
+    }
+
+    case '/addadmin': {
+      if (!isAdmin) return;
+      const id = Number.parseInt(argTail(text), 10);
+      if (!Number.isFinite(id) || id <= 0) {
+        await sendMessage(token, { chat_id: chatId, text: 'usage: /addadmin <user_id>' });
+        return;
+      }
+      const r = await state.addAdmin(id);
+      await sendMessage(token, {
+        chat_id: chatId,
+        text: r.ok ? `added admin: ${id}` : `failed: ${r.reason}`,
+      });
+      return;
+    }
+
+    case '/rmadmin': {
+      if (!isAdmin) return;
+      const id = Number.parseInt(argTail(text), 10);
+      if (!Number.isFinite(id) || id <= 0) {
+        await sendMessage(token, { chat_id: chatId, text: 'usage: /rmadmin <user_id>' });
+        return;
+      }
+      const r = await state.removeAdmin(id);
+      await sendMessage(token, {
+        chat_id: chatId,
+        text: r.ok ? `removed admin: ${id}` : `failed: ${r.reason}`,
+      });
+      return;
+    }
   }
 }
 
@@ -176,6 +218,9 @@ function helpText(isAdmin: boolean): string {
     '/groups — list configured target groups\n' +
     '/addgroup name|chat_id|thread_id? — add a group\n' +
     '/rmgroup chat_id — remove a group\n' +
+    '/admins — list admin user ids\n' +
+    '/addadmin <user_id> — grant admin to a user\n' +
+    '/rmadmin <user_id> — revoke admin (cannot remove the last admin)\n' +
     '/quota — today’s broadcast count\n' +
     '/setlimit N — change daily limit'
   );
@@ -192,19 +237,31 @@ async function handleId(token: string, chatId: string, arg: string): Promise<voi
   if (!arg) {
     await sendMessage(token, {
       chat_id: chatId,
-      text: `your chat_id: \`${chatId}\`\n\nusage: \`/id @username\` to look up a public group / channel`,
-      parse_mode: 'Markdown',
+      text: `your chat_id: ${chatId}\n\nusage: /id @username — look up a public supergroup or channel`,
     });
     return;
   }
 
   const ref = arg.startsWith('@') ? arg : '@' + arg;
-  const chat = await getChat(token, ref);
+
+  let chat;
+  try {
+    chat = await getChat(token, ref);
+  } catch (e) {
+    await sendMessage(token, {
+      chat_id: chatId,
+      text: `lookup error for ${ref}: ${(e as Error).message}`,
+    });
+    return;
+  }
+
   if (!chat) {
     await sendMessage(token, {
       chat_id: chatId,
-      text: `not found, or the bot can't access \`${ref}\`. it must be public, or the bot must be a member.`,
-      parse_mode: 'Markdown',
+      text:
+        `not found: ${ref}\n\n` +
+        `getChat only resolves public supergroups and channels. Users, bots, ` +
+        `and private chats can't be looked up by @username.`,
     });
     return;
   }
@@ -217,13 +274,12 @@ async function handleId(token: string, chatId: string, arg: string): Promise<voi
     chat_id: chatId,
     text: [
       `chat: ${title} (${chat.type})`,
-      `chat_id: \`${chat.id}\``,
+      `chat_id: ${chat.id}`,
       '',
-      `\`${addLine}\``,
+      addLine,
       '',
-      '_Note: thread_id (for forum topics) cannot be looked up by username — append it manually if needed._',
+      'thread_id (forum topics) cannot be looked up by username — append it manually if needed.',
     ].join('\n'),
-    parse_mode: 'Markdown',
   });
 }
 

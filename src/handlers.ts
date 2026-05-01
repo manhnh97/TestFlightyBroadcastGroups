@@ -433,7 +433,6 @@ async function broadcast(
       chat_id: g.chat_id,
       message_thread_id: g.thread_id,
       text,
-      disable_web_page_preview: true,
     }),
   );
   const discordWebhook = await state.getDiscordWebhook();

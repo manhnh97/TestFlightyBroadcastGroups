@@ -1,6 +1,5 @@
-// Static config: tokens (BOT_TOKENS secret), admins, contact target, Discord webhook,
-// daily quota, and one-time group seeds. Group changes after first deploy happen via
-// Telegram commands (/addgroup, /rmgroup) and persist in a Durable Object.
+// Single-bot config. Token comes from the BOT_TOKENS secret (plain string,
+// not JSON). All other config lives here.
 
 export type Group = {
   chat_id: string;       // -100... for supergroups/channels
@@ -14,14 +13,21 @@ export type Contact = {
 };
 
 export type BotConfig = {
-  id: string;            // matches /webhook/<id> path and BOT_TOKENS key
-  admins: number[];      // user ids allowed to broadcast & manage groups
-  contact?: Contact;     // /cc forwarding target (also used for error reports)
-  discordWebhook?: string;
-  dailyLimit?: number;   // broadcasts/day (default 200)
+  // Telegram user ids allowed to broadcast & manage groups.
+  // To find your id, message @userinfobot on Telegram.
+  admins: number[];
 
-  // Override for the "Shared by ..." footer line in broadcasts. If omitted,
-  // the admin's Telegram first_name is used.
+  // /cc forwarding target (also used for error reports). Optional.
+  contact?: Contact;
+
+  // Optional Discord webhook to mirror broadcasts.
+  discordWebhook?: string;
+
+  // Broadcasts/day. Default 200. Mutable at runtime via /setlimit.
+  dailyLimit?: number;
+
+  // Override for the "Shared by ..." footer line. If omitted, the admin's
+  // Telegram first_name is used.
   sharedBy?: string;
 
   // Initial groups, written to the DO ONLY if the DO has no groups yet.
@@ -32,41 +38,17 @@ export type BotConfig = {
 
 export const DEFAULT_DAILY_LIMIT = 200;
 
-export const BOTS: Record<string, BotConfig> = {
-  remindslow: {
-    id: 'remindslow',
-    admins: [863875519, 6325914189],
-    contact: { chat_id: '-1002031575789', thread_id: 11 },
-    discordWebhook:
-      'https://discord.com/api/webhooks/1210607511024177202/MqV1JFSHYhawyL6TIbaAMiiDRlQCueE4Xt-NkRBD0cSaGDNePaS1aEb8LjhMIukwg2xx',
-    dailyLimit: 200,
-    seedGroups: [
-      'Nghien|-1001236644871|235212',
-      'Testflight1110|-1002112742740',
-      'HahiOS|-1001590452930|1742',
-      'TestFlightM|-1002097016460',
-      'KGM|-1001823403288|32',
-    ],
-  },
-
-  testflightx: {
-    id: 'testflightx',
-    admins: [863875519, 6325914189],
-    contact: { chat_id: '-1002031575789', thread_id: 11 },
-    dailyLimit: 200,
-    seedGroups: [
-      'TestFlightX channel|-1001363951322',
-      'TestFlight Reviews|-1001170452834',
-    ],
-  },
-
-  campingapps: {
-    id: 'campingapps',
-    admins: [863875519, 6325914189],
-    contact: { chat_id: '-1002031575789', thread_id: 11 },
-    dailyLimit: 200,
-    seedGroups: [
-      'CampingApps Dashboard|-1002117624357',
-    ],
-  },
+export const BOT: BotConfig = {
+  admins: [863875519, 6325914189],
+  contact: { chat_id: '-1002031575789', thread_id: 11 },
+  discordWebhook:
+    'https://discord.com/api/webhooks/1210607511024177202/MqV1JFSHYhawyL6TIbaAMiiDRlQCueE4Xt-NkRBD0cSaGDNePaS1aEb8LjhMIukwg2xx',
+  dailyLimit: 200,
+  seedGroups: [
+    'Nghien|-1001236644871|235212',
+    'Testflight1110|-1002112742740',
+    'HahiOS|-1001590452930|1742',
+    'TestFlightM|-1002097016460',
+    'KGM|-1001823403288|32',
+  ],
 };

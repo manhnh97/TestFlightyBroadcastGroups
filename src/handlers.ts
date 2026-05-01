@@ -238,20 +238,20 @@ async function handleContact(
     chat_id: bot.contact.chat_id,
     message_thread_id: bot.contact.thread_id,
     text:
-      `[${nowVN()} VN] /cc from ${bot.id}\n` +
+      `[${nowVN()} VN] /cc\n` +
       `chat_id: ${user.id}\nusername: ${user.username ?? '(none)'}\nmessage: ${body}`,
   });
 }
 
 async function renderGroups(bot: BotConfig, state: State): Promise<string> {
   const groups = await state.listGroups();
-  if (!groups.length) return `*${bot.id}* has no groups configured`;
+  if (!groups.length) return 'no groups configured. add one with /addgroup';
   const lines = groups.map((g) => {
     const thread = g.thread_id ? ` thread \`${g.thread_id}\`` : '';
     return `• ${g.label ?? '(unlabeled)'} — \`${g.chat_id}\`${thread}`;
   });
   const discord = bot.discordWebhook ? '\n• Discord webhook configured' : '';
-  return `*${bot.id}* targets ${groups.length} group(s):\n${lines.join('\n')}${discord}`;
+  return `targets ${groups.length} group(s):\n${lines.join('\n')}${discord}`;
 }
 
 async function broadcast(
@@ -316,6 +316,6 @@ async function reportError(bot: BotConfig, token: string, message: string): Prom
   await sendMessage(token, {
     chat_id: bot.contact.chat_id,
     message_thread_id: bot.contact.thread_id,
-    text: `[${nowVN()} VN] [${bot.id}] ${message}`,
+    text: `[${nowVN()} VN] ${message}`,
   }).catch(() => {});
 }

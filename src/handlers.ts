@@ -183,11 +183,12 @@ async function handleCommand(
     case '/admins': {
       if (!isAdmin) return;
       const list = await state.listAdmins();
-      const text =
+      const replyText =
         list.length === 0
           ? 'no admins configured'
-          : `admins (${list.length}):\n` + list.map((id) => `• ${id}`).join('\n');
-      await sendMessage(token, { chat_id: chatId, text });
+          : `admins (${list.length}):\n` +
+            list.map((id) => `• <code>${id}</code>`).join('\n');
+      await sendMessage(token, { chat_id: chatId, text: replyText, parse_mode: 'HTML' });
       return;
     }
 
@@ -201,7 +202,10 @@ async function handleCommand(
       const r = await state.addAdmin(id);
       await sendMessage(token, {
         chat_id: chatId,
-        text: r.ok ? `added admin: ${id}` : `failed: ${r.reason}`,
+        parse_mode: 'HTML',
+        text: r.ok
+          ? `added admin: <code>${id}</code>`
+          : `failed: ${escapeHtml(r.reason ?? 'unknown')}`,
       });
       return;
     }
@@ -216,7 +220,51 @@ async function handleCommand(
       const r = await state.removeAdmin(id);
       await sendMessage(token, {
         chat_id: chatId,
-        text: r.ok ? `removed admin: ${id}` : `failed: ${r.reason}`,
+        parse_mode: 'HTML',
+        text: r.ok
+          ? `removed admin: <code>${id}</code>`
+          : `failed: ${escapeHtml(r.reason ?? 'unknown')}`,
+      });
+      return;
+    }
+
+    case '/discord': {
+      if (!isAdmin) return;
+      const url = await state.getDiscordWebhook();
+      await sendMessage(token, {
+        chat_id: chatId,
+        parse_mode: 'HTML',
+        text: url
+          ? `Discord webhook:\n<code>${escapeHtml(url)}</code>`
+          : 'no Discord webhook set. add one with /setdiscord <url>',
+      });
+      return;
+    }
+
+    case '/setdiscord': {
+      if (!isAdmin) return;
+      const url = argTail(text);
+      if (!url) {
+        await sendMessage(token, {
+          chat_id: chatId,
+          text: 'usage: /setdiscord https://discord.com/api/webhooks/<id>/<token>',
+        });
+        return;
+      }
+      const r = await state.setDiscordWebhook(url);
+      await sendMessage(token, {
+        chat_id: chatId,
+        text: r.ok ? 'Discord webhook updated' : `failed: ${r.reason}`,
+      });
+      return;
+    }
+
+    case '/rmdiscord': {
+      if (!isAdmin) return;
+      const removed = await state.clearDiscordWebhook();
+      await sendMessage(token, {
+        chat_id: chatId,
+        text: removed ? 'Discord webhook removed' : 'no Discord webhook was set',
       });
       return;
     }
@@ -238,6 +286,9 @@ function helpText(isAdmin: boolean): string {
     '/admins — list admin user ids\n' +
     '/addadmin <user_id> — grant admin to a user\n' +
     '/rmadmin <user_id> — revoke admin (cannot remove the last admin)\n' +
+    '/discord — show current Discord webhook\n' +
+    '/setdiscord <url> — set Discord webhook (mirrors broadcasts)\n' +
+    '/rmdiscord — remove Discord webhook\n' +
     '/quota — today’s webhook hit count (every message to the bot uses 1)\n' +
     '/setlimit N — change daily limit'
   );
@@ -335,15 +386,18 @@ async function handleContact(
   });
 }
 
-async function renderGroups(bot: BotConfig, state: State): Promise<string> {
+async function renderGroups(_bot: BotConfig, state: State): Promise<string> {
   const groups = await state.listGroups();
-  if (!groups.length) return 'no groups configured. add one with /addgroup';
+  const discordWebhook = await state.getDiscordWebhook();
+  if (!groups.length && !discordWebhook) {
+    return 'no groups configured. add one with /addgroup';
+  }
   const lines = groups.map((g) => {
     const label = escapeHtml(g.label ?? '(unlabeled)');
     const thread = g.thread_id ? ` thread <code>${g.thread_id}</code>` : '';
     return `• ${label} — <code>${g.chat_id}</code>${thread}`;
   });
-  const discord = bot.discordWebhook ? '\n• Discord webhook configured' : '';
+  const discord = discordWebhook ? '\n• Discord webhook configured (use /discord to view)' : '';
   return `targets ${groups.length} group(s):\n${lines.join('\n')}${discord}`;
 }
 
@@ -382,7 +436,8 @@ async function broadcast(
       disable_web_page_preview: true,
     }),
   );
-  if (bot.discordWebhook) tasks.push(sendDiscord(bot.discordWebhook, text));
+  const discordWebhook = await state.getDiscordWebhook();
+  if (discordWebhook) tasks.push(sendDiscord(discordWebhook, text));
   await Promise.allSettled(tasks);
 }
 

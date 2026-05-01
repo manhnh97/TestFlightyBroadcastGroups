@@ -7,6 +7,9 @@ const GROUPS_KEY = 'groups';
 const ADMINS_KEY = 'admins';
 const LIMIT_KEY = 'limit';
 const QUOTA_KEY = 'quota';
+const DISCORD_KEY = 'discord';
+
+const DISCORD_URL_RE = /^https:\/\/discord(?:app)?\.com\/api\/webhooks\/\d+\/[\w-]+$/;
 
 type StoredQuota = { date: string; count: number };
 
@@ -95,6 +98,36 @@ export class BotStateDO extends DurableObject {
     if (list.length <= 1) return { ok: false, reason: 'cannot remove the last admin' };
     await this.ctx.storage.put(ADMINS_KEY, list.filter((id) => id !== userId));
     return { ok: true };
+  }
+
+  // ---- Discord webhook -------------------------------------------------
+
+  async ensureSeededDiscord(seed: string | undefined): Promise<void> {
+    if (!seed) return;
+    const existing = await this.ctx.storage.get<string>(DISCORD_KEY);
+    if (existing !== undefined) return;
+    await this.ctx.storage.put(DISCORD_KEY, seed);
+  }
+
+  async getDiscordWebhook(): Promise<string | null> {
+    const v = await this.ctx.storage.get<string>(DISCORD_KEY);
+    return v && v.length > 0 ? v : null;
+  }
+
+  async setDiscordWebhook(url: string): Promise<{ ok: boolean; reason?: string }> {
+    const trimmed = url.trim();
+    if (!DISCORD_URL_RE.test(trimmed)) {
+      return { ok: false, reason: 'invalid Discord webhook URL' };
+    }
+    await this.ctx.storage.put(DISCORD_KEY, trimmed);
+    return { ok: true };
+  }
+
+  async clearDiscordWebhook(): Promise<boolean> {
+    const existing = await this.ctx.storage.get<string>(DISCORD_KEY);
+    if (existing === undefined) return false;
+    await this.ctx.storage.delete(DISCORD_KEY);
+    return true;
   }
 
   // ---- daily quota -----------------------------------------------------

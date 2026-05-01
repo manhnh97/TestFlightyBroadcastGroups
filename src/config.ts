@@ -22,8 +22,10 @@ export type BotConfig = {
   // /cc forwarding target (also used for error reports). Optional.
   contact?: Contact;
 
-  // Optional Discord webhook to mirror broadcasts.
-  discordWebhook?: string;
+  // Initial Discord webhook to mirror broadcasts. Written to the DO ONLY if
+  // the DO has no webhook yet. After first run, manage via /setdiscord and
+  // /rmdiscord — edits to this field are ignored.
+  seedDiscordWebhook?: string;
 
   // Broadcasts/day. Default 200. Mutable at runtime via /setlimit.
   dailyLimit?: number;
@@ -43,7 +45,7 @@ export const DEFAULT_DAILY_LIMIT = 200;
 export const BOT: BotConfig = {
   seedAdmins: [863875519, 6325914189],
   contact: { chat_id: '-1002031575789', thread_id: 11 },
-  discordWebhook:
+  seedDiscordWebhook:
     'https://discord.com/api/webhooks/1210607511024177202/MqV1JFSHYhawyL6TIbaAMiiDRlQCueE4Xt-NkRBD0cSaGDNePaS1aEb8LjhMIukwg2xx',
   dailyLimit: 200,
   seedGroups: [

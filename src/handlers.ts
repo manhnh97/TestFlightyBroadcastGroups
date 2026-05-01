@@ -39,6 +39,22 @@ export async function handleUpdate(
   const admins = await state.listAdmins();
   const isAdmin = admins.includes(msg.from.id);
 
+  // Every accepted webhook update consumes 1 quota slot. When the daily
+  // budget is exhausted, drop silently for non-admins; for admins, send one
+  // last notification per dropped request so they know to stop or /setlimit.
+  const consume = await state.tryConsume();
+  if (!consume.ok) {
+    if (isAdmin) {
+      await sendMessage(token, {
+        chat_id: msg.chat.id.toString(),
+        text:
+          `quota ${consume.count}/${consume.limit} reached for today (VN). ` +
+          `request dropped. resets at 00:00 VN, or raise it with /setlimit N.`,
+      });
+    }
+    return;
+  }
+
   if (text.startsWith('/')) {
     await handleCommand(msg, bot, token, state, isAdmin);
     return;
@@ -97,7 +113,7 @@ async function handleCommand(
       await sendMessage(token, {
         chat_id: chatId,
         text: await renderGroups(bot, state),
-        parse_mode: 'Markdown',
+        parse_mode: 'HTML',
       });
       return;
 
@@ -107,20 +123,19 @@ async function handleCommand(
       if (!line) {
         await sendMessage(token, {
           chat_id: chatId,
-          text: 'usage: `/addgroup name|chat_id|thread_id?`',
-          parse_mode: 'Markdown',
+          text: 'usage: /addgroup name|chat_id|thread_id?',
         });
         return;
       }
       const r = await state.addGroup(line);
+      const replyText = r.ok
+        ? `added: ${escapeHtml(r.group!.label ?? '')} → <code>${r.group!.chat_id}</code>` +
+          (r.group!.thread_id ? ` (thread <code>${r.group!.thread_id}</code>)` : '')
+        : `failed: ${escapeHtml(r.reason ?? 'unknown')}`;
       await sendMessage(token, {
         chat_id: chatId,
-        text: r.ok
-          ? `added: ${r.group!.label} → \`${r.group!.chat_id}\`${
-              r.group!.thread_id ? ` (thread \`${r.group!.thread_id}\`)` : ''
-            }`
-          : `failed: ${r.reason}`,
-        parse_mode: 'Markdown',
+        text: replyText,
+        parse_mode: 'HTML',
       });
       return;
     }
@@ -135,8 +150,10 @@ async function handleCommand(
       const removed = await state.removeGroup(target);
       await sendMessage(token, {
         chat_id: chatId,
-        text: removed ? `removed \`${target}\`` : `not found: \`${target}\``,
-        parse_mode: 'Markdown',
+        text: removed
+          ? `removed <code>${escapeHtml(target)}</code>`
+          : `not found: <code>${escapeHtml(target)}</code>`,
+        parse_mode: 'HTML',
       });
       return;
     }
@@ -221,7 +238,7 @@ function helpText(isAdmin: boolean): string {
     '/admins — list admin user ids\n' +
     '/addadmin <user_id> — grant admin to a user\n' +
     '/rmadmin <user_id> — revoke admin (cannot remove the last admin)\n' +
-    '/quota — today’s broadcast count\n' +
+    '/quota — today’s webhook hit count (every message to the bot uses 1)\n' +
     '/setlimit N — change daily limit'
   );
 }
@@ -322,8 +339,9 @@ async function renderGroups(bot: BotConfig, state: State): Promise<string> {
   const groups = await state.listGroups();
   if (!groups.length) return 'no groups configured. add one with /addgroup';
   const lines = groups.map((g) => {
-    const thread = g.thread_id ? ` thread \`${g.thread_id}\`` : '';
-    return `• ${g.label ?? '(unlabeled)'} — \`${g.chat_id}\`${thread}`;
+    const label = escapeHtml(g.label ?? '(unlabeled)');
+    const thread = g.thread_id ? ` thread <code>${g.thread_id}</code>` : '';
+    return `• ${label} — <code>${g.chat_id}</code>${thread}`;
   });
   const discord = bot.discordWebhook ? '\n• Discord webhook configured' : '';
   return `targets ${groups.length} group(s):\n${lines.join('\n')}${discord}`;
@@ -345,15 +363,6 @@ async function broadcast(
     return;
   }
   if (!name) return;
-
-  const consume = await state.tryConsume();
-  if (!consume.ok) {
-    await sendMessage(token, {
-      chat_id: adminChatId,
-      text: `quota exceeded (${consume.count}/${consume.limit}). resets at 00:00 VN time.`,
-    });
-    return;
-  }
 
   const groups = await state.listGroups();
   if (!groups.length) {

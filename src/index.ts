@@ -42,7 +42,21 @@ export default {
         if (BOT.seedAdmins?.length) await stub.ensureSeededAdmins(BOT.seedAdmins);
         await stub.ensureDailyLimit(BOT.dailyLimit);
         await handleUpdate(update, BOT, token, stub);
-      })().catch((e) => console.error('handler error:', e)),
+      })().catch(async (e) => {
+        console.error('handler error:', e);
+        // Surface the failure back to the user so it stops looking like a silent no-op.
+        const chatId = update.message?.chat?.id;
+        if (chatId) {
+          await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              chat_id: chatId,
+              text: `internal error: ${(e as Error).message ?? String(e)}`,
+            }),
+          }).catch(() => {});
+        }
+      }),
     );
     return new Response('ok');
   },

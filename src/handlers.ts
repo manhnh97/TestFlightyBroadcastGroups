@@ -267,20 +267,30 @@ async function handleId(token: string, chatId: string, arg: string): Promise<voi
   }
 
   const title = chat.title ?? chat.username ?? '(unknown)';
-  const suggestedName = (chat.title ?? chat.username ?? 'Group').replace(/\|/g, '_');
+  // Collapse any run of whitespace and/or pipes into a single underscore so
+  // the suggested name is a valid single token in the pipe-delimited format
+  // ("TestFlighty | Notification" -> "TestFlighty_Notification").
+  const suggestedName = (chat.title ?? chat.username ?? 'Group')
+    .replace(/[\s|]+/g, '_')
+    .replace(/^_+|_+$/g, '');
   const addLine = `/addgroup ${suggestedName}|${chat.id}`;
 
   await sendMessage(token, {
     chat_id: chatId,
+    parse_mode: 'HTML',
     text: [
-      `chat: ${title} (${chat.type})`,
-      `chat_id: ${chat.id}`,
+      `chat: ${escapeHtml(title)} (${chat.type})`,
+      `chat_id: <code>${chat.id}</code>`,
       '',
-      addLine,
+      `<code>${escapeHtml(addLine)}</code>`,
       '',
       'thread_id (forum topics) cannot be looked up by username — append it manually if needed.',
     ].join('\n'),
   });
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]!);
 }
 
 async function handleContact(

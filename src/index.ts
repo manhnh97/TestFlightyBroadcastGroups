@@ -41,6 +41,7 @@ export default {
         if (BOT.seedGroups?.length) await stub.ensureSeeded(BOT.seedGroups);
         if (BOT.seedAdmins?.length) await stub.ensureSeededAdmins(BOT.seedAdmins);
         await stub.ensureSeededDiscord(BOT.seedDiscordWebhook);
+        await stub.ensureSeededContact(BOT.seedContact);
         await stub.ensureDailyLimit(BOT.dailyLimit);
         await handleUpdate(update, BOT, token, stub);
       })().catch(async (e) => {

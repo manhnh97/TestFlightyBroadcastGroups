@@ -100,7 +100,7 @@ async function handleCommand(
       return;
 
     case '/cc':
-      await handleContact(msg, bot, token, argTail(text));
+      await handleContact(msg, bot, token, argTail(text), state);
       return;
 
     case '/id':
@@ -268,6 +268,54 @@ async function handleCommand(
       });
       return;
     }
+
+    case '/contact': {
+      if (!isAdmin) return;
+      const c = await state.getContact();
+      await sendMessage(token, {
+        chat_id: chatId,
+        parse_mode: 'HTML',
+        text: c
+          ? `/cc forwards to:\nchat_id: <code>${c.chat_id}</code>` +
+            (c.thread_id ? `\nthread_id: <code>${c.thread_id}</code>` : '')
+          : 'no contact group set. /cc replies thanks but forwards nowhere.\n\nusage: /setcontact <chat_id> [thread_id]',
+      });
+      return;
+    }
+
+    case '/setcontact': {
+      if (!isAdmin) return;
+      const args = argTail(text).split(/\s+/).filter(Boolean);
+      if (args.length < 1 || args.length > 2) {
+        await sendMessage(token, {
+          chat_id: chatId,
+          text: 'usage: /setcontact <chat_id> [thread_id]',
+        });
+        return;
+      }
+      const targetChatId = args[0];
+      const threadId = args[1] ? Number.parseInt(args[1], 10) : undefined;
+      const r = await state.setContact(targetChatId, threadId);
+      await sendMessage(token, {
+        chat_id: chatId,
+        parse_mode: 'HTML',
+        text: r.ok
+          ? `contact group set to <code>${escapeHtml(targetChatId)}</code>` +
+            (threadId !== undefined ? ` (thread <code>${threadId}</code>)` : '')
+          : `failed: ${escapeHtml(r.reason ?? 'unknown')}`,
+      });
+      return;
+    }
+
+    case '/rmcontact': {
+      if (!isAdmin) return;
+      const removed = await state.clearContact();
+      await sendMessage(token, {
+        chat_id: chatId,
+        text: removed ? 'contact group removed' : 'no contact group was set',
+      });
+      return;
+    }
   }
 }
 
@@ -289,6 +337,9 @@ function helpText(isAdmin: boolean): string {
     '/discord — show current Discord webhook\n' +
     '/setdiscord <url> — set Discord webhook (mirrors broadcasts)\n' +
     '/rmdiscord — remove Discord webhook\n' +
+    '/contact — show current /cc forwarding target\n' +
+    '/setcontact <chat_id> [thread_id] — set /cc forwarding target\n' +
+    '/rmcontact — remove /cc forwarding target\n' +
     '/quota — today’s webhook hit count (every message to the bot uses 1)\n' +
     '/setlimit N — change daily limit'
   );
@@ -363,9 +414,10 @@ function escapeHtml(s: string): string {
 
 async function handleContact(
   msg: TGMessage,
-  bot: BotConfig,
+  _bot: BotConfig,
   token: string,
   body: string,
+  state: State,
 ): Promise<void> {
   const user = msg.from!;
   const chatId = msg.chat.id.toString();
@@ -375,11 +427,12 @@ async function handleContact(
     text: `Thanks ${user.first_name ?? ''}, your message is important to me and I will respond as soon as possible.`,
   });
 
-  if (!bot.contact || !body) return;
+  const contact = await state.getContact();
+  if (!contact || !body) return;
 
   await sendMessage(token, {
-    chat_id: bot.contact.chat_id,
-    message_thread_id: bot.contact.thread_id,
+    chat_id: contact.chat_id,
+    message_thread_id: contact.thread_id,
     text:
       `[${nowVN()} VN] /cc\n` +
       `chat_id: ${user.id}\nusername: ${user.username ?? '(none)'}\nmessage: ${body}`,
@@ -403,7 +456,7 @@ async function renderGroups(_bot: BotConfig, state: State): Promise<string> {
 
 async function broadcast(
   url: string,
-  bot: BotConfig,
+  _bot: BotConfig,
   token: string,
   state: State,
   adminChatId: string,
@@ -413,7 +466,7 @@ async function broadcast(
   try {
     name = await fetchAppName(url);
   } catch (e) {
-    await reportError(bot, token, `fetchAppName failed for ${url}: ${(e as Error).message}`);
+    await reportError(state, token, `fetchAppName failed for ${url}: ${(e as Error).message}`);
     return;
   }
   if (!name) return;
@@ -449,11 +502,12 @@ function formatBroadcast(name: string, url: string, sharedBy: string): string {
   );
 }
 
-async function reportError(bot: BotConfig, token: string, message: string): Promise<void> {
-  if (!bot.contact) return;
+async function reportError(state: State, token: string, message: string): Promise<void> {
+  const contact = await state.getContact();
+  if (!contact) return;
   await sendMessage(token, {
-    chat_id: bot.contact.chat_id,
-    message_thread_id: bot.contact.thread_id,
+    chat_id: contact.chat_id,
+    message_thread_id: contact.thread_id,
     text: `[${nowVN()} VN] ${message}`,
   }).catch(() => {});
 }

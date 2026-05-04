@@ -42,8 +42,6 @@ The second call should show your worker URL in `"url"` and an empty `"last_error
 | Command | Who | What |
 |---|---|---|
 | `/start`, `/help` | anyone | usage hint |
-| `/cc <message>` | anyone | forwards a message to the contact group |
-| `/id [@username]` | admins, private chat | no arg → your own `chat_id`; with `@username` → look up a public group/channel via Telegram's `getChat` |
 | `/groups` | admins | list current target groups (from DO) |
 | `/addgroup name\|chat_id\|thread_id?` | admins | add or update a group |
 | `/rmgroup chat_id` | admins | remove a group |
@@ -53,9 +51,6 @@ The second call should show your worker URL in `"url"` and an empty `"last_error
 | `/discord` | admins | show current Discord webhook URL |
 | `/setdiscord <url>` | admins | set Discord webhook URL (mirrors broadcasts) |
 | `/rmdiscord` | admins | remove Discord webhook |
-| `/contact` | admins | show current `/cc` forwarding target |
-| `/setcontact <chat_id> [thread_id]` | admins | set the `/cc` forwarding target |
-| `/rmcontact` | admins | remove the `/cc` forwarding target |
 | `/quota` | admins | today's webhook hit count (`used / limit`) |
 | `/setlimit N` | admins | change the daily broadcast limit |
 | _(any TestFlight link)_ | admins, private chat | fetch app name, broadcast (consumes 1 quota) |
@@ -80,7 +75,7 @@ Send the bot a private-chat command. No redeploy:
 
 ## Seeding
 
-`seedGroups`, `seedAdmins`, `seedDiscordWebhook`, `seedContact`, and `dailyLimit` in `src/config.ts` are written to the DO **only on first use** (when the DO has no value yet). After that, runtime commands win. To re-seed, delete the DO instance with `wrangler` or change values directly via commands.
+`seedGroups`, `seedAdmins`, `seedDiscordWebhook`, and `dailyLimit` in `src/config.ts` are written to the DO **only on first use** (when the DO has no value yet). After that, runtime commands win. To re-seed, delete the DO instance with `wrangler` or change values directly via commands.
 
 ## Local dev
 
@@ -95,8 +90,8 @@ npm run typecheck
 ```
 src/
   index.ts            # HTTP entry, /webhook router
-  config.ts           # BOT: seedAdmins, seedContact, seedDiscordWebhook, seedGroups, dailyLimit
-  handlers.ts         # commands: /cc, /id, /groups, /addgroup, /rmgroup, /admins, /addadmin, /rmadmin, /discord, /setdiscord, /rmdiscord, /quota, /setlimit + broadcast
+  config.ts           # BOT: seedAdmins, seedDiscordWebhook, seedGroups, dailyLimit
+  handlers.ts         # commands: /groups, /addgroup, /rmgroup, /admins, /addadmin, /rmadmin, /discord, /setdiscord, /rmdiscord, /quota, /setlimit + broadcast
   telegram.ts         # sendMessage / Discord helpers
   testflight.ts       # link regex, title fetch, hashtag, ?nocache
   durable-objects.ts  # BotStateDO: group storage + DailyQuotaLimiter

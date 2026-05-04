@@ -1,13 +1,12 @@
 import type { BotConfig } from './config';
 import type { BotStateDO } from './durable-objects';
-import { sendMessage, sendDiscord, getChat } from './telegram';
+import { sendMessage, sendDiscord } from './telegram';
 import {
   extractTestFlightLinks,
   fetchAppName,
   isTestFlightUrl,
   nameToHashtag,
 } from './testflight';
-import { nowVN } from './time';
 
 type TGUser = { id: number; first_name?: string; username?: string; is_bot?: boolean };
 type TGEntity = { type: string; offset: number; length: number; url?: string };
@@ -97,15 +96,6 @@ async function handleCommand(
     case '/start':
     case '/help':
       await sendMessage(token, { chat_id: chatId, text: helpText(isAdmin) });
-      return;
-
-    case '/cc':
-      await handleContact(msg, bot, token, argTail(text), state);
-      return;
-
-    case '/id':
-      if (!isAdmin) return;
-      await handleId(token, chatId, argTail(text));
       return;
 
     case '/groups':
@@ -269,65 +259,14 @@ async function handleCommand(
       return;
     }
 
-    case '/contact': {
-      if (!isAdmin) return;
-      const c = await state.getContact();
-      await sendMessage(token, {
-        chat_id: chatId,
-        parse_mode: 'HTML',
-        text: c
-          ? `/cc forwards to:\nchat_id: <code>${c.chat_id}</code>` +
-            (c.thread_id ? `\nthread_id: <code>${c.thread_id}</code>` : '')
-          : 'no contact group set. /cc replies thanks but forwards nowhere.\n\nusage: /setcontact <chat_id> [thread_id]',
-      });
-      return;
-    }
-
-    case '/setcontact': {
-      if (!isAdmin) return;
-      const args = argTail(text).split(/\s+/).filter(Boolean);
-      if (args.length < 1 || args.length > 2) {
-        await sendMessage(token, {
-          chat_id: chatId,
-          text: 'usage: /setcontact <chat_id> [thread_id]',
-        });
-        return;
-      }
-      const targetChatId = args[0];
-      const threadId = args[1] ? Number.parseInt(args[1], 10) : undefined;
-      const r = await state.setContact(targetChatId, threadId);
-      await sendMessage(token, {
-        chat_id: chatId,
-        parse_mode: 'HTML',
-        text: r.ok
-          ? `contact group set to <code>${escapeHtml(targetChatId)}</code>` +
-            (threadId !== undefined ? ` (thread <code>${threadId}</code>)` : '')
-          : `failed: ${escapeHtml(r.reason ?? 'unknown')}`,
-      });
-      return;
-    }
-
-    case '/rmcontact': {
-      if (!isAdmin) return;
-      const removed = await state.clearContact();
-      await sendMessage(token, {
-        chat_id: chatId,
-        text: removed ? 'contact group removed' : 'no contact group was set',
-      });
-      return;
-    }
   }
 }
 
 function helpText(isAdmin: boolean): string {
-  const base =
-    'Send TestFlight links to broadcast them.\n\n' +
-    '/cc <message> — contact the admin\n';
-  if (!isAdmin) return base;
+  if (!isAdmin) return 'Send TestFlight links to broadcast them.';
   return (
-    base +
-    '\nadmin:\n' +
-    '/id [@username] — your own chat_id, or look up a public group/channel by username\n' +
+    'Send TestFlight links to broadcast them.\n\n' +
+    'admin:\n' +
     '/groups — list configured target groups\n' +
     '/addgroup name|chat_id|thread_id? — add a group\n' +
     '/rmgroup chat_id — remove a group\n' +
@@ -337,9 +276,6 @@ function helpText(isAdmin: boolean): string {
     '/discord — show current Discord webhook\n' +
     '/setdiscord <url> — set Discord webhook (mirrors broadcasts)\n' +
     '/rmdiscord — remove Discord webhook\n' +
-    '/contact — show current /cc forwarding target\n' +
-    '/setcontact <chat_id> [thread_id] — set /cc forwarding target\n' +
-    '/rmcontact — remove /cc forwarding target\n' +
     '/quota — today’s webhook hit count (every message to the bot uses 1)\n' +
     '/setlimit N — change daily limit'
   );
@@ -350,94 +286,10 @@ function argTail(text: string): string {
   return idx === -1 ? '' : text.slice(idx + 1).trim();
 }
 
-async function handleId(token: string, chatId: string, arg: string): Promise<void> {
-  // No arg: report the caller's own chat_id (their Telegram user id, since
-  // this is a private chat).
-  if (!arg) {
-    await sendMessage(token, {
-      chat_id: chatId,
-      text: `your chat_id: ${chatId}\n\nusage: /id @username — look up a public supergroup or channel`,
-    });
-    return;
-  }
-
-  const ref = arg.startsWith('@') ? arg : '@' + arg;
-
-  let chat;
-  try {
-    chat = await getChat(token, ref);
-  } catch (e) {
-    await sendMessage(token, {
-      chat_id: chatId,
-      text: `lookup error for ${ref}: ${(e as Error).message}`,
-    });
-    return;
-  }
-
-  if (!chat) {
-    await sendMessage(token, {
-      chat_id: chatId,
-      text:
-        `not found: ${ref}\n\n` +
-        `getChat only resolves public supergroups and channels. Users, bots, ` +
-        `and private chats can't be looked up by @username.`,
-    });
-    return;
-  }
-
-  const title = chat.title ?? chat.username ?? '(unknown)';
-  // Collapse any run of whitespace and/or pipes into a single underscore so
-  // the suggested name is a valid single token in the pipe-delimited format
-  // ("TestFlighty | Notification" -> "TestFlighty_Notification").
-  const suggestedName = (chat.title ?? chat.username ?? 'Group')
-    .replace(/[\s|]+/g, '_')
-    .replace(/^_+|_+$/g, '');
-  const addLine = `/addgroup ${suggestedName}|${chat.id}`;
-
-  await sendMessage(token, {
-    chat_id: chatId,
-    parse_mode: 'HTML',
-    text: [
-      `chat: ${escapeHtml(title)} (${chat.type})`,
-      `chat_id: <code>${chat.id}</code>`,
-      '',
-      `<code>${escapeHtml(addLine)}</code>`,
-      '',
-      'thread_id (forum topics) cannot be looked up by username — append it manually if needed.',
-    ].join('\n'),
-  });
-}
-
 function escapeHtml(s: string): string {
   return s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]!);
 }
 
-async function handleContact(
-  msg: TGMessage,
-  _bot: BotConfig,
-  token: string,
-  body: string,
-  state: State,
-): Promise<void> {
-  const user = msg.from!;
-  const chatId = msg.chat.id.toString();
-
-  await sendMessage(token, {
-    chat_id: chatId,
-    text: `Thanks ${user.first_name ?? ''}, your message is important to me and I will respond as soon as possible.`,
-  });
-
-  const contact = await state.getContact();
-  if (!contact || !body) return;
-
-  await sendMessage(token, {
-    chat_id: contact.chat_id,
-    message_thread_id: contact.thread_id,
-    text:
-      `[${nowVN()} VN] /cc\n` +
-      `chat_id: ${user.id}\nusername: ${user.username ?? '(none)'}\nmessage: ${body}`,
-  });
-}
 
 async function renderGroups(_bot: BotConfig, state: State): Promise<string> {
   const groups = await state.listGroups();
@@ -466,7 +318,7 @@ async function broadcast(
   try {
     name = await fetchAppName(url);
   } catch (e) {
-    await reportError(state, token, `fetchAppName failed for ${url}: ${(e as Error).message}`);
+    console.error(`fetchAppName failed for ${url}:`, e);
     return;
   }
   if (!name) return;
@@ -502,12 +354,3 @@ function formatBroadcast(name: string, url: string, sharedBy: string): string {
   );
 }
 
-async function reportError(state: State, token: string, message: string): Promise<void> {
-  const contact = await state.getContact();
-  if (!contact) return;
-  await sendMessage(token, {
-    chat_id: contact.chat_id,
-    message_thread_id: contact.thread_id,
-    text: `[${nowVN()} VN] ${message}`,
-  }).catch(() => {});
-}

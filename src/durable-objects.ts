@@ -1,5 +1,5 @@
 import { DurableObject } from 'cloudflare:workers';
-import type { Contact, Group } from './config';
+import type { Group } from './config';
 import { DEFAULT_DAILY_LIMIT } from './config';
 import { todayVN } from './time';
 
@@ -8,7 +8,6 @@ const ADMINS_KEY = 'admins';
 const LIMIT_KEY = 'limit';
 const QUOTA_KEY = 'quota';
 const DISCORD_KEY = 'discord';
-const CONTACT_KEY = 'contact';
 
 const DISCORD_URL_RE = /^https:\/\/discord(?:app)?\.com\/api\/webhooks\/\d+\/[\w-]+$/;
 
@@ -128,39 +127,6 @@ export class BotStateDO extends DurableObject {
     const existing = await this.ctx.storage.get<string>(DISCORD_KEY);
     if (existing === undefined) return false;
     await this.ctx.storage.delete(DISCORD_KEY);
-    return true;
-  }
-
-  // ---- contact group ---------------------------------------------------
-
-  async ensureSeededContact(seed: Contact | undefined): Promise<void> {
-    if (!seed) return;
-    const existing = await this.ctx.storage.get<Contact>(CONTACT_KEY);
-    if (existing !== undefined) return;
-    await this.ctx.storage.put(CONTACT_KEY, seed);
-  }
-
-  async getContact(): Promise<Contact | null> {
-    return (await this.ctx.storage.get<Contact>(CONTACT_KEY)) ?? null;
-  }
-
-  async setContact(chatId: string, threadId?: number): Promise<{ ok: boolean; reason?: string }> {
-    if (!chatId) return { ok: false, reason: 'chat_id required' };
-    const contact: Contact = { chat_id: chatId };
-    if (threadId !== undefined) {
-      if (!Number.isFinite(threadId) || threadId <= 0) {
-        return { ok: false, reason: 'invalid thread_id' };
-      }
-      contact.thread_id = threadId;
-    }
-    await this.ctx.storage.put(CONTACT_KEY, contact);
-    return { ok: true };
-  }
-
-  async clearContact(): Promise<boolean> {
-    const existing = await this.ctx.storage.get<Contact>(CONTACT_KEY);
-    if (existing === undefined) return false;
-    await this.ctx.storage.delete(CONTACT_KEY);
     return true;
   }
 

@@ -12,7 +12,6 @@ type TGUser = { id: number; first_name?: string; username?: string; is_bot?: boo
 type TGEntity = { type: string; offset: number; length: number; url?: string };
 type TGMessage = {
   message_id: number;
-  message_thread_id?: number;
   from?: TGUser;
   chat: { id: number; type: string; title?: string };
   text?: string;
@@ -33,22 +32,11 @@ export async function handleUpdate(
 
   const isPrivate = msg.chat.type === 'private';
   const text = msg.text ?? '';
-  const cmd = text.trim().split(/\s+/)[0]?.toLowerCase().split('@')[0] ?? '';
+
+  if (!isPrivate) return;
 
   const admins = await state.listAdmins();
   const isAdmin = admins.includes(msg.from.id);
-
-  // /id is the only command that works outside private chat — admins use it
-  // in groups/topics to discover chat_id and thread_id for /addgroup.
-  if (cmd === '/id') {
-    if (!isAdmin) return;
-    const ok = await state.tryConsume();
-    if (!ok.ok) return;
-    await replyChatInfo(token, msg);
-    return;
-  }
-
-  if (!isPrivate) return;
 
   // Every accepted webhook update consumes 1 quota slot. When the daily
   // budget is exhausted, drop silently for non-admins; for admins, send one
@@ -109,6 +97,21 @@ async function handleCommand(
     case '/help':
       await sendMessage(token, { chat_id: chatId, text: helpText(isAdmin) });
       return;
+
+    case '/id': {
+      if (!isAdmin) return;
+      const target = argTail(text);
+      if (target) {
+        await replyLookupId(token, msg, target);
+      } else {
+        await sendMessage(token, {
+          chat_id: chatId,
+          text: `your user_id: <code>${msg.from!.id}</code>`,
+          parse_mode: 'HTML',
+        });
+      }
+      return;
+    }
 
     case '/groups':
       if (!isAdmin) return;
@@ -279,7 +282,8 @@ function helpText(isAdmin: boolean): string {
   return (
     'Send TestFlight links to broadcast them.\n\n' +
     'admin:\n' +
-    '/id — (any chat) print chat_id, thread_id, and a ready /addgroup line\n' +
+    '/id — print your user_id\n' +
+    '/id @username[/thread_id] | chat_id — look up any public chat (prints /addgroup line)\n' +
     '/groups — list configured target groups\n' +
     '/addgroup name|chat_id|thread_id? — add a group\n' +
     '/rmgroup chat_id — remove a group\n' +
@@ -294,35 +298,52 @@ function helpText(isAdmin: boolean): string {
   );
 }
 
-async function replyChatInfo(token: string, msg: TGMessage): Promise<void> {
-  const chat = msg.chat;
-  const lines: string[] = [];
-  lines.push(`<b>chat_id:</b> <code>${chat.id}</code>`);
-  lines.push(`<b>type:</b> ${escapeHtml(chat.type)}`);
-  if (chat.title) lines.push(`<b>title:</b> ${escapeHtml(chat.title)}`);
-  if (msg.message_thread_id !== undefined) {
-    lines.push(`<b>thread_id:</b> <code>${msg.message_thread_id}</code>`);
-  }
-  if (msg.from?.id !== undefined) {
-    lines.push(`<b>your user_id:</b> <code>${msg.from.id}</code>`);
+async function replyLookupId(
+  token: string,
+  msg: TGMessage,
+  target: string,
+): Promise<void> {
+  // Accept: @username, username, t.me/username, @username/<thread>, <chat_id>, <chat_id>/<thread>
+  let raw = target.trim();
+  raw = raw.replace(/^https?:\/\/t\.me\//i, '');
+  raw = raw.replace(/^t\.me\//i, '');
+  raw = raw.replace(/^@/, '');
+
+  const slashIdx = raw.indexOf('/');
+  const handle = slashIdx === -1 ? raw : raw.slice(0, slashIdx);
+  const threadStr = slashIdx === -1 ? '' : raw.slice(slashIdx + 1);
+  const threadId = /^\d+$/.test(threadStr) ? Number.parseInt(threadStr, 10) : undefined;
+  const lookupRef = /^-?\d+$/.test(handle) ? handle : '@' + handle;
+
+  const r = await fetch(
+    `https://api.telegram.org/bot${token}/getChat?chat_id=${encodeURIComponent(lookupRef)}`,
+  );
+  const data = (await r.json().catch(() => null)) as
+    | { ok: true; result: { id: number; title?: string; type: string; username?: string } }
+    | { ok: false; description?: string }
+    | null;
+
+  const chatId = msg.chat.id.toString();
+  if (!data || !data.ok) {
+    const reason = data && !data.ok ? data.description ?? 'unknown' : 'no response';
+    await sendMessage(token, {
+      chat_id: chatId,
+      text: `getChat failed for ${escapeHtml(lookupRef)}: ${escapeHtml(reason)}`,
+    });
+    return;
   }
 
-  // Convenience: for groups/channels, suggest the /addgroup line.
-  if (chat.id < 0) {
-    const rawSlug = (chat.title ?? 'Group').replace(/[|\s]+/g, '');
-    const slug = rawSlug || 'Group';
-    const threadPart =
-      msg.message_thread_id !== undefined ? `|${msg.message_thread_id}` : '';
-    lines.push('');
-    lines.push(
-      `<code>/addgroup ${escapeHtml(slug)}|${chat.id}${threadPart}</code>`,
-    );
-  }
+  // Slug: prefer the input @username (preserves case the user typed), fall
+  // back to the chat title if the input was numeric.
+  const slug = /^-?\d+$/.test(handle)
+    ? ((data.result.title ?? data.result.username ?? 'Group').replace(/[|\s]+/g, '') || 'Group')
+    : handle;
+  const threadPart = threadId !== undefined ? `|${threadId}` : '';
+  const line = `/addgroup ${slug}|${data.result.id}${threadPart}`;
 
   await sendMessage(token, {
-    chat_id: chat.id.toString(),
-    message_thread_id: msg.message_thread_id,
-    text: lines.join('\n'),
+    chat_id: chatId,
+    text: `<code>${escapeHtml(line)}</code>`,
     parse_mode: 'HTML',
   });
 }

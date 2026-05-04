@@ -10,8 +10,24 @@ export interface Env {
   //   Value: 1234567890:AAE...
   BOT_TOKENS: string;
 
+  // Optional comma-separated Telegram user ids to seed as admins on first
+  // run. Lets the source repo stay clean of personal IDs. Set as a plaintext
+  // Variable (or Secret) in the dashboard:
+  //   Variables and Secrets > Add > Type: Plaintext, Name: SEED_ADMINS,
+  //   Value: 123456789,987654321
+  // If set, this overrides BOT.seedAdmins from src/config.ts.
+  SEED_ADMINS?: string;
+
   // Durable Object binding for group + quota state.
   BOT_STATE: DurableObjectNamespace<BotStateDO>;
+}
+
+function parseAdminIds(s: string | undefined): number[] {
+  if (!s) return [];
+  return s
+    .split(',')
+    .map((x) => Number.parseInt(x.trim(), 10))
+    .filter((n) => Number.isFinite(n) && n > 0);
 }
 
 const DO_NAME = 'bot';
@@ -39,7 +55,9 @@ export default {
     ctx.waitUntil(
       (async () => {
         if (BOT.seedGroups?.length) await stub.ensureSeeded(BOT.seedGroups);
-        if (BOT.seedAdmins?.length) await stub.ensureSeededAdmins(BOT.seedAdmins);
+        const envAdmins = parseAdminIds(env.SEED_ADMINS);
+        const seedAdmins = envAdmins.length ? envAdmins : (BOT.seedAdmins ?? []);
+        if (seedAdmins.length) await stub.ensureSeededAdmins(seedAdmins);
         await stub.ensureSeededDiscord(BOT.seedDiscordWebhook);
         await stub.ensureDailyLimit(BOT.dailyLimit);
         await handleUpdate(update, BOT, token, stub);

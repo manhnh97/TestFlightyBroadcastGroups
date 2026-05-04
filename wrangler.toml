@@ -1,6 +1,7 @@
 name = "testflightybroadcastgroups"
 main = "src/index.ts"
 compatibility_date = "2025-05-01"
+keep_vars = true
 
 # All configuration lives in src/config.ts.
 # The only secret is BOT_TOKENS, the bot token as a plain string:

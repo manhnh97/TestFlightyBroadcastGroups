@@ -83,6 +83,7 @@ The second call should show your worker URL in `"url"` and an empty `"last_error
 | Command | Who | What |
 |---|---|---|
 | `/start`, `/help` | anyone | usage hint |
+| `/id` | admins, **any chat** | print `chat_id`, `thread_id`, your `user_id`, and a ready-to-paste `/addgroup` line — useful for discovering IDs when adding groups/topics |
 | `/groups` | admins | list current target groups (from DO) |
 | `/addgroup name\|chat_id\|thread_id?` | admins | add or update a group |
 | `/rmgroup chat_id` | admins | remove a group |

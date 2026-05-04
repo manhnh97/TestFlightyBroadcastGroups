@@ -12,6 +12,7 @@ type TGUser = { id: number; first_name?: string; username?: string; is_bot?: boo
 type TGEntity = { type: string; offset: number; length: number; url?: string };
 type TGMessage = {
   message_id: number;
+  message_thread_id?: number;
   from?: TGUser;
   chat: { id: number; type: string; title?: string };
   text?: string;
@@ -32,11 +33,22 @@ export async function handleUpdate(
 
   const isPrivate = msg.chat.type === 'private';
   const text = msg.text ?? '';
-
-  if (!isPrivate) return;
+  const cmd = text.trim().split(/\s+/)[0]?.toLowerCase().split('@')[0] ?? '';
 
   const admins = await state.listAdmins();
   const isAdmin = admins.includes(msg.from.id);
+
+  // /id is the only command that works outside private chat — admins use it
+  // in groups/topics to discover chat_id and thread_id for /addgroup.
+  if (cmd === '/id') {
+    if (!isAdmin) return;
+    const ok = await state.tryConsume();
+    if (!ok.ok) return;
+    await replyChatInfo(token, msg);
+    return;
+  }
+
+  if (!isPrivate) return;
 
   // Every accepted webhook update consumes 1 quota slot. When the daily
   // budget is exhausted, drop silently for non-admins; for admins, send one
@@ -267,6 +279,7 @@ function helpText(isAdmin: boolean): string {
   return (
     'Send TestFlight links to broadcast them.\n\n' +
     'admin:\n' +
+    '/id — (any chat) print chat_id, thread_id, and a ready /addgroup line\n' +
     '/groups — list configured target groups\n' +
     '/addgroup name|chat_id|thread_id? — add a group\n' +
     '/rmgroup chat_id — remove a group\n' +
@@ -279,6 +292,39 @@ function helpText(isAdmin: boolean): string {
     '/quota — today’s webhook hit count (every message to the bot uses 1)\n' +
     '/setlimit N — change daily limit'
   );
+}
+
+async function replyChatInfo(token: string, msg: TGMessage): Promise<void> {
+  const chat = msg.chat;
+  const lines: string[] = [];
+  lines.push(`<b>chat_id:</b> <code>${chat.id}</code>`);
+  lines.push(`<b>type:</b> ${escapeHtml(chat.type)}`);
+  if (chat.title) lines.push(`<b>title:</b> ${escapeHtml(chat.title)}`);
+  if (msg.message_thread_id !== undefined) {
+    lines.push(`<b>thread_id:</b> <code>${msg.message_thread_id}</code>`);
+  }
+  if (msg.from?.id !== undefined) {
+    lines.push(`<b>your user_id:</b> <code>${msg.from.id}</code>`);
+  }
+
+  // Convenience: for groups/channels, suggest the /addgroup line.
+  if (chat.id < 0) {
+    const rawSlug = (chat.title ?? 'Group').replace(/[|\s]+/g, '');
+    const slug = rawSlug || 'Group';
+    const threadPart =
+      msg.message_thread_id !== undefined ? `|${msg.message_thread_id}` : '';
+    lines.push('');
+    lines.push(
+      `<code>/addgroup ${escapeHtml(slug)}|${chat.id}${threadPart}</code>`,
+    );
+  }
+
+  await sendMessage(token, {
+    chat_id: chat.id.toString(),
+    message_thread_id: msg.message_thread_id,
+    text: lines.join('\n'),
+    parse_mode: 'HTML',
+  });
 }
 
 function argTail(text: string): string {

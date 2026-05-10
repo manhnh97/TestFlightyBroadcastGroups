@@ -38,21 +38,8 @@ export async function handleUpdate(
   const admins = await state.listAdmins();
   const isAdmin = admins.includes(msg.from.id);
 
-  // Every accepted webhook update consumes 1 quota slot. When the daily
-  // budget is exhausted, drop silently for non-admins; for admins, send one
-  // last notification per dropped request so they know to stop or /setlimit.
-  const consume = await state.tryConsume();
-  if (!consume.ok) {
-    if (isAdmin) {
-      await sendMessage(token, {
-        chat_id: msg.chat.id.toString(),
-        text:
-          `quota ${consume.count}/${consume.limit} reached for today (VN). ` +
-          `request dropped. resets at 00:00 VN, or raise it with /setlimit N.`,
-      });
-    }
-    return;
-  }
+  // Counter is tracked for /quota visibility but the daily limit is disabled.
+  await state.tryConsume();
 
   if (text.startsWith('/')) {
     await handleCommand(msg, bot, token, state, isAdmin);

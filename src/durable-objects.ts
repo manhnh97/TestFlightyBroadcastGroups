@@ -155,18 +155,15 @@ export class BotStateDO extends DurableObject {
     return { date: today, count, limit, remaining: Math.max(0, limit - count) };
   }
 
-  // Atomic consume: rolls the day if needed, refuses past the limit.
+  // Daily limit is disabled: always accept, just track the counter for /quota.
   async tryConsume(): Promise<ConsumeResult> {
     const limit = await this.getDailyLimit();
     const today = todayVN();
     let cur = await this.ctx.storage.get<StoredQuota>(QUOTA_KEY);
     if (!cur || cur.date !== today) cur = { date: today, count: 0 };
-    if (cur.count >= limit) {
-      return { ok: false, date: today, count: cur.count, limit, remaining: 0 };
-    }
     cur.count += 1;
     await this.ctx.storage.put(QUOTA_KEY, cur);
-    return { ok: true, date: today, count: cur.count, limit, remaining: limit - cur.count };
+    return { ok: true, date: today, count: cur.count, limit, remaining: Math.max(0, limit - cur.count) };
   }
 }
 
